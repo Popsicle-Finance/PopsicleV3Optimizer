@@ -387,6 +387,8 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     
     /// @dev collects fees from the pool
     function _earnFees() internal returns (uint256 collect0, uint256 collect1) {
+        uint liquidity = pool.positionLiquidity(tickLower, tickUpper);
+        if (liquidity == 0) return (0,0); // we can't poke when liquidity is zero
          // Do zero-burns to poke the Uniswap pools so earned fees are updated
         pool.burn(tickLower, tickUpper, 0);
         
@@ -514,7 +516,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         else
         {
             uint128 liquidity = pool.liquidityForAmounts(amount0, amount1, tickLower, tickUpper);
-            pool.burnExactLiquidity(tickLower, tickUpper, liquidity, msg.sender);
+            (amount0, amount1) = pool.burnExactLiquidity(tickLower, tickUpper, liquidity, msg.sender);
         
         }
         
