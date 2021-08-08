@@ -1,0 +1,6 @@
+.vscode/
+./libraries/PriceMath.sol
+
+# Local Compiled files
+bin/
+artifacts/
