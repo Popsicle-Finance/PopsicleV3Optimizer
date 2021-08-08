@@ -48,6 +48,7 @@ contract OptimizerStrategy is IOptimizerStrategy {
         require(_maxTwapDeviation >= 0, "maxTwapDeviation");
         require(_twapDuration > 0, "twapDuration");
         require(_priceImpactPercentage < 1e6 && _priceImpactPercentage > 0, "PIP");
+        require(maxTotalSupply > 0, "maxTotalSupply");
     }
 
     modifier onlyGovernance {
