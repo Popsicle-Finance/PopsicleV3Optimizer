@@ -2643,10 +2643,14 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
             );
 
         // Calculate protocol's fees
-        protocolFees0 = protocolFees0.add(collect0.mul(protocolFee).unsafeDiv(GLOBAL_DIVISIONER));
-        protocolFees1 = protocolFees1.add(collect1.mul(protocolFee).unsafeDiv(GLOBAL_DIVISIONER));
+        uint256 earnedProtocolFees0 = collect0.mul(protocolFee).unsafeDiv(GLOBAL_DIVISIONER);
+        uint256 earnedProtocolFees1 = collect0.mul(protocolFee).unsafeDiv(GLOBAL_DIVISIONER);
+        protocolFees0 = protocolFees0.add(earnedProtocolFees0);
+        protocolFees1 = protocolFees1.add(earnedProtocolFees1);
         totalFees0 = totalFees0.add(collect0);
         totalFees1 = totalFees1.add(collect1);
+        collect0 = collect0.sub(earnedProtocolFees0);
+        collect1 = collect1.sub(earnedProtocolFees1);
         emit CollectFees(collect0, collect1, totalFees0, totalFees1);
     }
 
