@@ -1,22 +1,20 @@
 import { ethers } from "hardhat";
-import { Contract, Signer } from "ethers";
-import { expect, use } from 'chai';
-import chaiAsPromised from 'chai-as-promised';
-import { randomNumber } from '../utils';
-
-use(chaiAsPromised);
+import { Signer } from "ethers";
+import { expect } from './shared';
+import { randomNumber } from './shared';
+import { OptimizerStrategy } from '../typechain';
 
 const CONTRACT_PATH = "contracts/OptimizerStrategy.sol:OptimizerStrategy";
 
 describe("OptimizerStrategy", function () {
   let addr1: Signer;
-  let contract: Contract; 
+  let contract: OptimizerStrategy; 
   
   beforeEach(async function () {
     [, addr1] = await ethers.getSigners();
 
     const contractFactory = await ethers.getContractFactory(CONTRACT_PATH);
-    contract = await contractFactory.deploy(1 , 0 , 1, 1, 1);
+    contract = (await contractFactory.deploy(1 , 0 , 1, 1, 1)) as OptimizerStrategy;
   });
 
   describe('setMaxTotalSupply', function() {
@@ -34,14 +32,14 @@ describe("OptimizerStrategy", function () {
       expect(maxTotalSupply).to.equal(newMaxTotalSupply);
     });
 
-    it("should execute only by the owner", function () {
+    it("should execute only by the owner", async function () {
       const action = contract.connect(addr1).setMaxTotalSupply(newMaxTotalSupply);
-      expect(action).to.be.rejected;
+      await expect(action).to.be.reverted;
     })
 
-    it("should check input value", function () {
+    it("should check input value", async function () {
       const action = contract.setMaxTotalSupply(0);
-      expect(action).to.be.rejected;
+      await expect(action).to.be.reverted;
     })
   })
 
@@ -60,14 +58,14 @@ describe("OptimizerStrategy", function () {
       expect(maxTwapDuration).to.equal(twapDuration);
     });
 
-    it("should execute only by the owner", function () {
+    it("should execute only by the owner", async function () {
       const action = contract.connect(addr1).setTwapDuration(twapDuration);
-      expect(action).to.be.rejected;
+      await expect(action).to.be.reverted;
     })
 
-    it("should check input value", function () {
+    it("should check input value", async function () {
       const action = contract.setMaxTotalSupply(0);
-      expect(action).to.be.rejected;
+      await expect(action).to.be.reverted;
     })
   })
 
@@ -86,14 +84,14 @@ describe("OptimizerStrategy", function () {
       expect(maxTwapDuration).to.equal(newMaxTwapDeviation);
     });
 
-    it("should execute only by the owner", function () {
+    it("should execute only by the owner", async function () {
       const action = contract.connect(addr1).setMaxTwapDeviation(newMaxTwapDeviation);
-      expect(action).to.be.rejected;
+      await expect(action).to.be.reverted;
     })
 
-    it("should check input value", function () {
+    it("should check input value", async function () {
       const action = contract.setMaxTotalSupply(0);
-      expect(action).to.be.rejected;
+      await expect(action).to.be.reverted;
     })
   })
 
@@ -112,9 +110,9 @@ describe("OptimizerStrategy", function () {
       expect(tickRange).to.equal(newTickRange);
     });
 
-    it("should execute only by the owner", function () {
+    it("should execute only by the owner", async function () {
       const action = contract.connect(addr1).setTickRange(newTickRange);
-      expect(action).to.be.rejected;
+      await expect(action).to.be.reverted;
     })
   })
 
@@ -133,14 +131,14 @@ describe("OptimizerStrategy", function () {
       expect(priceImpact).to.equal(newPriceImpact);
     });
 
-    it("should execute only by the owner", function () {
+    it("should execute only by the owner", async function () {
       const action = contract.connect(addr1).setPriceImpact(newPriceImpact);
-      expect(action).to.be.rejected;
+      await expect(action).to.be.reverted;
     })
 
-    it("should check input value", function () {
+    it("should check input value", async function () {
       const action = contract.setMaxTotalSupply(0);
-      expect(action).to.be.rejected;
+      await expect(action).to.be.reverted;
     })
   })
 
@@ -159,9 +157,9 @@ describe("OptimizerStrategy", function () {
       expect(pendingGovernance).to.equal(newPendingGovernance);
     });
 
-    it("should execute only by the owner", function () {
+    it("should execute only by the owner", async function () {
       const action = contract.connect(addr1).setGovernance(newPendingGovernance);
-      expect(action).to.be.rejected;
+      await expect(action).to.be.reverted;
     })
   })
 
@@ -182,9 +180,9 @@ describe("OptimizerStrategy", function () {
       expect(governance).to.equal(newGovernance);
     });
 
-    it("should execute only by the pending governance", function () {
+    it("should execute only by the pending governance", async function () {
       const action = contract.acceptGovernance();
-      expect(action).to.be.rejected;
+      await expect(action).to.be.reverted;
     })
   })
 });

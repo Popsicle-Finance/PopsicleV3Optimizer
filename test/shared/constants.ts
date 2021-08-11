@@ -1,0 +1,1 @@
+export const TOKEN_PATH = "contracts/token/ERC20.sol:ERC20";

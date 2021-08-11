@@ -6,3 +6,5 @@ bin/
 artifacts/
 
 node_modules/
+typechain/
+cache/

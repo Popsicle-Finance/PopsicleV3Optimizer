@@ -1,5 +1,7 @@
 import { task } from "hardhat/config";
 import "@nomiclabs/hardhat-waffle";
+import '@typechain/hardhat'
+import '@nomiclabs/hardhat-ethers'
 
 task("accounts", "Prints the list of accounts", async (args, hre) => {
   const accounts = await hre.ethers.getSigners();
@@ -13,6 +15,11 @@ task("accounts", "Prints the list of accounts", async (args, hre) => {
  * @type import('hardhat/config').HardhatUserConfig
  */
 export default {
+  networks: {
+    hardhat: {
+      allowUnlimitedContractSize: true,
+    },
+  },
   solidity: "0.7.6",
   settings: {
     optimizer: {
@@ -28,5 +35,9 @@ export default {
   },
   mocha: {
     timeout: 20000
+  },
+  typechain: {
+    target: 'ethers-v5',
+    alwaysGenerateOverloads: false,
   }
 };
