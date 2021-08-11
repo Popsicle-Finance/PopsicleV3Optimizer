@@ -1,1 +1,2 @@
 export const TOKEN_PATH = "contracts/token/ERC20.sol:ERC20";
+export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
