@@ -1,10 +1,7 @@
 import { ethers } from "hardhat";
-import { Signer } from "ethers";
-import { expect, deployUniswapPool, IToken, FeeAmount, ZERO_ADDRESS } from './shared';
+import { Signer, constants } from "ethers";
+import { expect, deployUniswapPool, IToken, FeeAmount, ZERO_ADDRESS, OPTIMIZER_STRATEGY_PATH, POPSICLE_V3_OPTIMIZER_PATH } from './shared';
 import { PopsicleV3Optimizer, OptimizerStrategy } from '../typechain';
-
-const STRATEGY_PATH = "contracts/OptimizerStrategy.sol:OptimizerStrategy";
-const CONTRACT_PATH = "contracts/PopsicleV3Optimizer.sol:PopsicleV3Optimizer";
 
 const TOKENS: IToken[] = [
     { name: "T", symbol: "TT" },
@@ -18,19 +15,128 @@ describe("PopsicleV3Optimizer", () => {
     let contract: PopsicleV3Optimizer;
 
     const deployStrategy = async (): Promise<OptimizerStrategy> => {
-        const strategyFactory = await ethers.getContractFactory(STRATEGY_PATH);
-        return (await strategyFactory.deploy(1 , 0 , 1, 1, 1)) as OptimizerStrategy;
+        const strategyFactory = await ethers.getContractFactory(OPTIMIZER_STRATEGY_PATH);
+        return (await strategyFactory.deploy(1 , 40 , 16, 2000, constants.MaxUint256)) as OptimizerStrategy;
     }
 
     beforeEach("deploy PopsicleV3Optimizer", async () => {
         [owner, other] = await ethers.getSigners();
 
-        const pool = await deployUniswapPool(owner, TOKENS, FeeAmount.MEDIUM);
+        const [pool, token0, token1] = await deployUniswapPool(owner, TOKENS, FeeAmount.MEDIUM);
         const strategy = await deployStrategy();        
 
-        const contractFactory = await ethers.getContractFactory(CONTRACT_PATH);
+        const contractFactory = await ethers.getContractFactory(POPSICLE_V3_OPTIMIZER_PATH);
         contract = (await contractFactory.deploy(pool.address, strategy.address)) as PopsicleV3Optimizer;
+
+        await token0.approve(contract.address, constants.MaxUint256);
+        await token1.approve(contract.address, constants.MaxUint256);
     })
+
+    describe('init' , () => {
+        it('should init contract', async () => {
+            await contract.init();
+
+            const initialized = await contract.initialized();
+            expect(initialized).be.true;
+        })
+
+        it('should execute only by the owner', async () => {
+            const action = contract.connect(other).init();
+            await expect(action).to.revertedWith('OG');
+        })
+
+        it("fails if already initialized", async () => {
+            await contract.init();
+
+            const action = contract.init();
+            await expect(action).to.revertedWith("F");
+        })
+    })
+
+    // describe('deposit', () => {
+    //     let address: string;
+
+    //     beforeEach("get address for deposit", async () => {
+    //         address = await owner.getAddress();
+    //     });
+
+    //     beforeEach("init contract", async () => {
+    //         await contract.init();
+    //     })
+
+    //     it('should emit Deposit event', async () => {
+    //         const action = contract.deposit(randomNumber(3), randomNumber(2) , address, { value: ethers.utils.parseEther("1.0") });
+    //         await expect(action).to.emit(contract, "Deposit").withArgs('')
+    //     });
+
+    //     it('should check for zero amount', async () => {
+    //         const action = contract.deposit(0, 0 , address, { value: ethers.utils.parseEther("1.0") });
+    //         await expect(action).to.revertedWith("ANV");
+    //     });
+    // })
+
+    // describe("withdraw", () => {
+    //     let address: string;
+
+    //     beforeEach("get address for deposit", async () => {
+    //         address = await owner.getAddress();
+    //     });
+
+    //     it('should emit Withdraw event', async () => {
+    //         const action = contract.withdraw(randomNumber(1), address);
+    //         await expect(action).to.emit(contract, 'Withdraw').withArgs("");
+    //     })
+    // })
+
+    // describe("rerange", () => {
+    //     beforeEach("init contract", async () => {
+    //         await contract.init();
+    //     })
+
+    //     it('should emit Snapshot event', async () => {
+    //         const action = contract.rerange({ value: ethers.utils.parseEther('0.1')});
+    //         await expect(action).to.emit(contract, 'Snapshot').withArgs("");
+    //     })
+
+    //     it('should emit Rerange event', async () => {
+    //         const action = contract.rerange({ value: ethers.utils.parseEther('0.1')});
+    //         await expect(action).to.emit(contract, 'Rerange').withArgs("");
+    //     })
+    // })
+
+    // describe("rebalance", () => {
+    //     it('should emit Snapshot event', async () => {
+    //         const action = contract.rebalance({ value: ethers.utils.parseEther('0.1')});
+    //         await expect(action).to.emit(contract, 'Snapshot').withArgs("");
+    //     })
+
+    //     it('should emit Rerange event', async () => {
+    //         const action = contract.rebalance({ value: ethers.utils.parseEther('0.1')});
+    //         await expect(action).to.emit(contract, 'Rerange').withArgs("");
+    //     })
+    // })
+
+    // describe("position", () => {})
+
+    // describe("uniswapV3MintCallback", () => {})
+
+    // describe("uniswapV3SwapCallback", () => {})
+
+    // describe("collectProtocolFees", () => {
+    //     beforeEach("init contract", async () => {
+    //         await contract.init();
+    //     })
+
+    //     it("should emit RewardPaid event", async () => {
+    //         const action = contract.collectProtocolFees(randomNumber(1), randomNumber(2));
+    //         await expect(action).to.emit(contract, "RewardPaid").withArgs("");
+    //     })
+
+    //     it('should execute only by the owner', async () => {
+    //         const action = contract.connect(other).collectProtocolFees(randomNumber(1), randomNumber(2));
+    //         await expect(action).to.be.reverted;
+    //     })
+    // })
     
     describe("setGovernance", () => {
         let newPendingGovernance: string;

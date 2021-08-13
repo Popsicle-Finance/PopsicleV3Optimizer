@@ -1,10 +1,8 @@
 import { ethers } from "hardhat";
 import { Signer } from "ethers";
 import { expect } from './shared';
-import { randomNumber } from './shared';
+import { randomNumber, OPTIMIZER_STRATEGY_PATH } from './shared';
 import { OptimizerStrategy } from '../typechain';
-
-const CONTRACT_PATH = "contracts/OptimizerStrategy.sol:OptimizerStrategy";
 
 describe("OptimizerStrategy", function () {
   let addr1: Signer;
@@ -13,7 +11,7 @@ describe("OptimizerStrategy", function () {
   beforeEach(async function () {
     [, addr1] = await ethers.getSigners();
 
-    const contractFactory = await ethers.getContractFactory(CONTRACT_PATH);
+    const contractFactory = await ethers.getContractFactory(OPTIMIZER_STRATEGY_PATH);
     contract = (await contractFactory.deploy(1 , 0 , 1, 1, 1)) as OptimizerStrategy;
   });
 
@@ -34,12 +32,12 @@ describe("OptimizerStrategy", function () {
 
     it("should execute only by the owner", async function () {
       const action = contract.connect(addr1).setMaxTotalSupply(newMaxTotalSupply);
-      await expect(action).to.be.reverted;
+      await expect(action).to.revertedWith('NOT ALLOWED');
     })
 
     it("should check input value", async function () {
       const action = contract.setMaxTotalSupply(0);
-      await expect(action).to.be.reverted;
+      await expect(action).to.revertedWith('maxTotalSupply');
     })
   })
 
@@ -60,12 +58,12 @@ describe("OptimizerStrategy", function () {
 
     it("should execute only by the owner", async function () {
       const action = contract.connect(addr1).setTwapDuration(twapDuration);
-      await expect(action).to.be.reverted;
+      await expect(action).to.revertedWith('NOT ALLOWED');
     })
 
     it("should check input value", async function () {
-      const action = contract.setMaxTotalSupply(0);
-      await expect(action).to.be.reverted;
+      const action = contract.setTwapDuration(0);
+      await expect(action).to.revertedWith("twapDuration");
     })
   })
 
@@ -86,12 +84,12 @@ describe("OptimizerStrategy", function () {
 
     it("should execute only by the owner", async function () {
       const action = contract.connect(addr1).setMaxTwapDeviation(newMaxTwapDeviation);
-      await expect(action).to.be.reverted;
+      await expect(action).to.revertedWith('NOT ALLOWED');
     })
 
     it("should check input value", async function () {
-      const action = contract.setMaxTotalSupply(0);
-      await expect(action).to.be.reverted;
+      const action = contract.setMaxTwapDeviation(0);
+      await expect(action).to.revertedWith('PF');
     })
   })
 
@@ -112,7 +110,7 @@ describe("OptimizerStrategy", function () {
 
     it("should execute only by the owner", async function () {
       const action = contract.connect(addr1).setTickRange(newTickRange);
-      await expect(action).to.be.reverted;
+      await expect(action).to.revertedWith('NOT ALLOWED');
     })
   })
 
@@ -133,12 +131,12 @@ describe("OptimizerStrategy", function () {
 
     it("should execute only by the owner", async function () {
       const action = contract.connect(addr1).setPriceImpact(newPriceImpact);
-      await expect(action).to.be.reverted;
+      await expect(action).to.revertedWith('NOT ALLOWED');
     })
 
     it("should check input value", async function () {
-      const action = contract.setMaxTotalSupply(0);
-      await expect(action).to.be.reverted;
+      const action = contract.setPriceImpact(0);
+      await expect(action).to.revertedWith('PIP');
     })
   })
 
@@ -159,7 +157,7 @@ describe("OptimizerStrategy", function () {
 
     it("should execute only by the owner", async function () {
       const action = contract.connect(addr1).setGovernance(newPendingGovernance);
-      await expect(action).to.be.reverted;
+      await expect(action).to.revertedWith('NOT ALLOWED');
     })
   })
 
@@ -182,7 +180,7 @@ describe("OptimizerStrategy", function () {
 
     it("should execute only by the pending governance", async function () {
       const action = contract.acceptGovernance();
-      await expect(action).to.be.reverted;
+      await expect(action).to.revertedWith('PG');
     })
   })
 });
