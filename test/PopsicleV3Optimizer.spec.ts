@@ -1,5 +1,5 @@
 import { ethers } from "hardhat";
-import { Signer, constants, BigNumber } from "ethers";
+import { Signer, constants } from "ethers";
 import { 
     expect, 
     deployUniswapPool, 
@@ -12,10 +12,12 @@ import {
     ticks,
     liquidity,
     calcShare,
-    getPositionKey
+    getPositionKey,
+    liquidityForAmounts,
+    mintAmounts, 
+    burnAmounts
 } from './shared';
 import { PopsicleV3Optimizer, OptimizerStrategy, UniswapV3Pool, ERC20 } from '../typechain';
-import { mintAmounts, burnAmounts } from './shared/uniswap';
 
 const TOKENS: IToken[] = [
     { name: "T", symbol: "TT" },
@@ -163,43 +165,60 @@ describe("PopsicleV3Optimizer", () => {
         });
     })
 
-    // describe("rerange", () => {
-    //     let balance0: BigNumber;
-    //     let balance1: BigNumber;
+    describe("rerange", () => {
+        let balance0: number;
+        let balance1: number;
+        let tickLower: number;
+        let tickUpper: number;
+        let amount0: string;
+        let amount1: string;
+        let liquidity: string;
 
-    //     beforeEach("init contract", async () => {
-    //         await contract.init();
-    //     })
+        beforeEach("init contract", async () => {
+            await contract.init();
+        })
 
-    //     beforeEach('deposit', async () => {
-    //         const amount0Desired = randomNumber(3);
-    //         const amount1Desired = randomNumber(2);
+        beforeEach('deposit', async () => {
+            const amount0Desired = randomNumber(3);
+            const amount1Desired = randomNumber(2);
 
-    //         const address = await owner.getAddress();
+            const address = await owner.getAddress();
 
-    //         await contract.deposit(amount0Desired, amount1Desired , address, { value: ethers.utils.parseEther("1.0") });
-    //     })
+            await contract.deposit(amount0Desired, amount1Desired , address, { value: ethers.utils.parseEther("1.0") });
+        });
 
-    //     it('should emit CollectFees event', async () => {
-    //         const action = contract.rerange({ value: ethers.utils.parseEther('0.1')});
-    //         await expect(action).to.emit(contract, 'CollectFees').withArgs(0, 0, 0, 0);
-    //     })
+        beforeEach('should get pool tokens balances', async () => {
+            balance0 =  (await token0.balanceOf(pool.address)).toNumber() - 1;
+            balance1 =  (await token1.balanceOf(pool.address)).toNumber() - 1;
+        });
 
-    //     it('should get pool tokens balances', async () => {
-    //         balance0 = await token0.balanceOf(pool.address);
-    //         balance1 = await token1.balanceOf(pool.address);
-    //     })
+        beforeEach("should get ticks", async () => {
+            [tickLower, tickUpper] = await ticks(contract);
+        });
 
-    //     it('should emit Snapshot event', async () => {
-    //         const action = contract.rerange({ value: ethers.utils.parseEther('0.1')});            
-    //         await expect(action).to.emit(contract, 'Snapshot').withArgs(balance0.toNumber(), balance1.toNumber() - 1);
-    //     })
+        beforeEach("calc liquidity", async () => {
+            liquidity = await liquidityForAmounts(pool, balance0, balance1, tickLower, tickUpper);
+        })
 
-    //     it('should emit Rerange event', async () => {
-    //         const action = contract.rerange({ value: ethers.utils.parseEther('0.1')});
-    //         await expect(action).to.emit(contract, 'Rerange').withArgs(0, 0 , 0, 0);
-    //     })
-    // })
+        beforeEach("should calc amount0, amount1", async () => {
+            [amount0, amount1] = await mintAmounts(pool, tickLower, tickUpper, liquidity);
+        })
+
+        it('should emit CollectFees event', async () => {
+            const action = contract.rerange({ value: ethers.utils.parseEther('0.1')});
+            await expect(action).to.emit(contract, 'CollectFees').withArgs(0, 0, 0, 0);
+        })
+
+        it('should emit Snapshot event', async () => {
+            const action = contract.rerange({ value: ethers.utils.parseEther('0.1')});
+            await expect(action).to.emit(contract, 'Snapshot').withArgs(balance0, balance1);
+        })
+
+        it('should emit Rerange event', async () => {
+            const action = contract.rerange({ value: ethers.utils.parseEther('0.1')});
+            await expect(action).to.emit(contract, 'Rerange').withArgs(tickLower, tickUpper , amount0, amount1);
+        })
+    })
 
     // describe("rebalance", () => {
     //     it('should emit Snapshot event', async () => {
