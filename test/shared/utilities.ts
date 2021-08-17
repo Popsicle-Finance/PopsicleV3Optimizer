@@ -1,4 +1,4 @@
-import { constants, Signer } from "ethers";
+import { Signer } from "ethers";
 import { ethers, waffle } from "hardhat";
 import { TOKEN_PATH } from './constants';
 import UniswapV3Factory from '@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json';
@@ -6,6 +6,7 @@ import UniswapV3Pool from '@uniswap/v3-core/artifacts/contracts/UniswapV3Pool.so
 import { ERC20 } from '../../typechain';
 import { UniswapV3Factory as CUniswapV3Factory, UniswapV3Pool as CUniswapV3Pool } from '../../typechain';
 import { encodePriceSqrt } from "./encode-price-sqrt";
+import { abi as TokenAbi } from '../../artifacts/contracts/helpers/token/ERC20.sol/ERC20.json';
 
 export enum FeeAmount {
     LOW = 500,
@@ -36,5 +37,11 @@ export const deployUniswapPool = async (signer: Signer, tokens:IToken[], feeAmou
 
     await pool.initialize(encodePriceSqrt(1, 2));
 
-    return [pool, token0, token1];
+    const token0PoolAddress = await pool.token0();
+    const token1PoolAddress = await pool.token1();
+
+    const token0Pool = (await ethers.getContractAt(TokenAbi, token0PoolAddress)) as ERC20;
+    const token1Pool = (await ethers.getContractAt(TokenAbi, token1PoolAddress)) as ERC20;
+
+    return [pool, token0Pool, token1Pool];
 }
