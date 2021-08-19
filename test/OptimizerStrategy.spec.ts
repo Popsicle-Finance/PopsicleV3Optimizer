@@ -45,7 +45,7 @@ describe("OptimizerStrategy", function () {
     let twapDuration: number;
 
     beforeEach(() => {
-      twapDuration = randomNumber(4);
+      twapDuration = randomNumber(2);
     })
 
     it("should set new twapDuration", async function () {
