@@ -1,25 +1,26 @@
 import { ethers } from "hardhat";
-import { Signer, constants } from "ethers";
+import { Signer, constants, BigNumber } from "ethers";
 import { 
     expect, 
-    deployUniswapPool, 
-    IToken, 
+    deploy, 
+    IErc20, 
     FeeAmount, 
-    ZERO_ADDRESS, 
-    OPTIMIZER_STRATEGY_PATH, 
+    deployStrategy, 
     POPSICLE_V3_OPTIMIZER_PATH, 
     randomNumber, 
-    ticks,
+    getTicks,
     liquidity,
     calcShare,
     getPositionKey,
     liquidityForAmounts,
     mintAmounts, 
-    burnAmounts
+    burnAmounts,
+    exactInputSingle,
+    poolDisbalancer
 } from './shared';
-import { PopsicleV3Optimizer, OptimizerStrategy, UniswapV3Pool, ERC20 } from '../typechain';
+import { PopsicleV3Optimizer, OptimizerStrategy, UniswapV3Pool, ERC20, SwapRouter } from '../typechain';
 
-const TOKENS: IToken[] = [
+const TOKENS: IErc20[] = [
     { name: "T", symbol: "TT" },
     { name: "N", symbol: "NN" }
 ];
@@ -30,25 +31,33 @@ describe("PopsicleV3Optimizer", () => {
 
     let contract: PopsicleV3Optimizer;
     let pool: UniswapV3Pool;
+    let router: SwapRouter;
+
     let token0: ERC20;
     let token1: ERC20;
-
-    const deployStrategy = async (): Promise<OptimizerStrategy> => {
-        const strategyFactory = await ethers.getContractFactory(OPTIMIZER_STRATEGY_PATH);
-        return (await strategyFactory.deploy(1 , 40 , 16, 2000, constants.MaxUint256)) as OptimizerStrategy;
-    }
 
     beforeEach("deploy PopsicleV3Optimizer", async () => {
         [owner, other] = await ethers.getSigners();
 
-        [pool, token0, token1] = await deployUniswapPool(owner, TOKENS, FeeAmount.MEDIUM);
+        const state = await deploy(owner, { feeAmount: FeeAmount.MEDIUM, tokens: TOKENS, priceSqrtRange: [1, 2] });
+
+        pool = state.pool.pool;
+        router = state.router;
+        token0 = state.pool.token0;
+        token1 = state.pool.token1;
+
         const strategy = await deployStrategy();        
 
         const contractFactory = await ethers.getContractFactory(POPSICLE_V3_OPTIMIZER_PATH);
         contract = (await contractFactory.deploy(pool.address, strategy.address)) as PopsicleV3Optimizer;
 
-        await token0.approve(contract.address, constants.MaxUint256);
-        await token1.approve(contract.address, constants.MaxUint256);
+        for(let token of [token0, token1]){
+            await token.approve(contract.address, constants.MaxUint256);
+            await token.connect(other).approve(contract.address, constants.MaxUint256);
+            await token.approve(router.address, constants.MaxUint256);
+            await token.connect(other).approve(router.address, constants.MaxUint256);
+            await token.transfer(await other.getAddress(), BigNumber.from(10).mul(BigNumber.from(10).pow(18)));
+        }
     })
 
     describe('init' , () => {
@@ -97,7 +106,7 @@ describe("PopsicleV3Optimizer", () => {
         });
 
         beforeEach("cacl share, amount0, amount1", async () => {
-            const [tickLower, tickUpper] = await ticks(contract);
+            const [tickLower, tickUpper] = await getTicks(contract);
             const _liquidity = await liquidity(pool, contract, amount0Desired, amount1Desired);
             
             share = await calcShare(pool, contract, amount0Desired, amount1Desired);
@@ -106,12 +115,12 @@ describe("PopsicleV3Optimizer", () => {
         })
 
         it('should emit Deposit event', async () => {
-            const action = contract.deposit(amount0Desired, amount1Desired , address, { value: ethers.utils.parseEther("1.0") });
+            const action = contract.deposit(amount0Desired, amount1Desired , address);
             await expect(action).to.emit(contract, "Deposit").withArgs(address, share, amount0, amount1);
         });
 
         it('should check for zero amount', async () => {
-            const action = contract.deposit(0, 0 , address, { value: ethers.utils.parseEther("1.0") });
+            const action = contract.deposit(0, 0 , address);
             await expect(action).to.revertedWith("ANV");
         });
     })
@@ -141,7 +150,7 @@ describe("PopsicleV3Optimizer", () => {
         });
 
         beforeEach('deposit', async () => {
-            await contract.deposit(amount0Desired, amount1Desired , address, { value: ethers.utils.parseEther("1.0") });
+            await contract.deposit(amount0Desired, amount1Desired , address);
         })
 
         beforeEach("cacl share, amount0, amount1, userFees0, userFees1", async () => {          
@@ -160,77 +169,73 @@ describe("PopsicleV3Optimizer", () => {
         });
 
         it('should check for address(0)', async () => {
-            const action = contract.withdraw(share, ZERO_ADDRESS);
+            const action = contract.withdraw(share, constants.AddressZero);
             await expect(action).to.revertedWith("WZA");
         });
     })
 
     describe("rerange", () => {
-        let balance0: number;
-        let balance1: number;
-        let tickLower: number;
-        let tickUpper: number;
-        let amount0: string;
-        let amount1: string;
-        let liquidity: string;
-
         beforeEach("init contract", async () => {
             await contract.init();
         })
 
         beforeEach('deposit', async () => {
-            const amount0Desired = randomNumber(3);
-            const amount1Desired = randomNumber(2);
+            const amount = 100000;
 
-            const address = await owner.getAddress();
-
-            await contract.deposit(amount0Desired, amount1Desired , address, { value: ethers.utils.parseEther("1.0") });
+            await contract.deposit(amount, amount, await owner.getAddress());
+            await contract.connect(other).deposit(amount, amount, await other.getAddress());
         });
 
-        beforeEach('should get pool tokens balances', async () => {
-            balance0 =  (await token0.balanceOf(pool.address)).toNumber() - 1;
-            balance1 =  (await token1.balanceOf(pool.address)).toNumber() - 1;
-        });
-
-        beforeEach("should get ticks", async () => {
-            [tickLower, tickUpper] = await ticks(contract);
-        });
-
-        beforeEach("calc liquidity", async () => {
-            liquidity = await liquidityForAmounts(pool, balance0, balance1, tickLower, tickUpper);
-        })
-
-        beforeEach("should calc amount0, amount1", async () => {
-            [amount0, amount1] = await mintAmounts(pool, tickLower, tickUpper, liquidity);
-        })
-
-        it('should emit CollectFees event', async () => {
-            const action = contract.rerange({ value: ethers.utils.parseEther('0.1')});
-            await expect(action).to.emit(contract, 'CollectFees').withArgs(0, 0, 0, 0);
-        })
-
-        it('should emit Snapshot event', async () => {
-            const action = contract.rerange({ value: ethers.utils.parseEther('0.1')});
-            await expect(action).to.emit(contract, 'Snapshot').withArgs(balance0, balance1);
+        beforeEach("disbalance pool", async () => {
+            await poolDisbalancer([owner, other], router, pool, token0, token1, 0.7);
         })
 
         it('should emit Rerange event', async () => {
-            const action = contract.rerange({ value: ethers.utils.parseEther('0.1')});
-            await expect(action).to.emit(contract, 'Rerange').withArgs(tickLower, tickUpper , amount0, amount1);
+            const action = contract.rerange();
+            await expect(action).to.emit(contract, 'Rerange').withArgs(-8220, -5460 , 266644, 70807);
         })
     })
 
-    // describe("rebalance", () => {
-    //     it('should emit Snapshot event', async () => {
-    //         const action = contract.rebalance({ value: ethers.utils.parseEther('0.1')});
-    //         await expect(action).to.emit(contract, 'Snapshot').withArgs("");
-    //     })
+    describe("rebalance", () => {
+        let secondContract: PopsicleV3Optimizer;
 
-    //     it('should emit Rerange event', async () => {
-    //         const action = contract.rebalance({ value: ethers.utils.parseEther('0.1')});
-    //         await expect(action).to.emit(contract, 'Rerange').withArgs("");
-    //     })
-    // })
+        beforeEach("init contract", async () => {
+            await contract.init();
+        });
+
+        beforeEach("deploy and init new contract", async() => {
+            const strategy = await deployStrategy();        
+
+            const contractFactory = await ethers.getContractFactory(POPSICLE_V3_OPTIMIZER_PATH);
+            secondContract = (await contractFactory.deploy(pool.address, strategy.address)) as PopsicleV3Optimizer;
+
+            await secondContract.init();
+
+            for(let token of [token0, token1]){
+                await token.approve(secondContract.address, constants.MaxUint256);
+                await token.connect(other).approve(secondContract.address, constants.MaxUint256);
+            }
+        })
+
+        beforeEach("deposit", async() => {
+            const amount = 100000;
+
+            await secondContract.deposit(amount, amount, await owner.getAddress());
+            await secondContract.connect(other).deposit(amount, amount, await other.getAddress());
+
+            await contract.deposit(amount, amount, await owner.getAddress());
+            await contract.connect(other).deposit(amount, amount, await other.getAddress());
+        });
+
+        beforeEach("disbalance pool", async () => {
+            await poolDisbalancer([owner, other], router, pool, token0, token1);
+        })
+
+        it('should emit Rerange event', async () => {
+            const action = contract.rebalance();
+            await expect(action).to.emit(contract, 'Rerange').withArgs(-8700,-240,364878,26010);
+        })
+    })
 
     describe("position", () => {
         let tickLower: number;
@@ -238,7 +243,7 @@ describe("PopsicleV3Optimizer", () => {
         let positionKey: string;
 
         beforeEach('should get current pool ticks', async () => {
-            [tickLower, tickUpper] = await ticks(contract);
+            [tickLower, tickUpper] = await getTicks(contract);
         });
 
         beforeEach('should create position key', () => {
@@ -256,10 +261,6 @@ describe("PopsicleV3Optimizer", () => {
             expect(tokensOwed1).be.equal(positions.tokensOwed1);
         }) 
     })
-
-    // describe("uniswapV3MintCallback", () => {})
-
-    // describe("uniswapV3SwapCallback", () => {})
 
     describe("collectProtocolFees", () => {
         let address: string;
@@ -350,7 +351,7 @@ describe("PopsicleV3Optimizer", () => {
         });
 
         it("should check for address(0)", async () => {
-            const action = contract.setStrategy(ZERO_ADDRESS);
+            const action = contract.setStrategy(constants.AddressZero);
             await expect(action).to.revertedWith("NA");
         })
 

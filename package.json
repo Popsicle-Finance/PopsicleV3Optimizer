@@ -38,6 +38,7 @@
   "dependencies": {
     "@typechain/ethers-v5": "^7.0.1",
     "@typechain/hardhat": "^2.3.0",
+    "@uniswap/v3-periphery": "^1.0.1",
     "ts-generator": "^0.1.1",
     "typechain": "^5.1.2"
   }

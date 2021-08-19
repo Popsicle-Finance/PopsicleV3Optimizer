@@ -1,6 +1,6 @@
 import { BigNumber } from 'ethers';
-import { PopsicleV3Optimizer, UniswapV3Pool } from '../../typechain';
-import { liquidity, liquidityLast } from './liquidity';
+import { PopsicleV3Optimizer, UniswapV3Pool } from '../../../../typechain';
+import { liquidity, liquidityLast } from '../liquidity';
 
 export const calcShare = async (pool: UniswapV3Pool, contract: PopsicleV3Optimizer, amount0Desired: number, amount1Desired: number): Promise<string> => {
     const _liquidity = await liquidity(pool, contract, amount0Desired, amount1Desired);
