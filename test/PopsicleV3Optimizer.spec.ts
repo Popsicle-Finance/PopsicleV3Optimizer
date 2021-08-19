@@ -123,6 +123,13 @@ describe("PopsicleV3Optimizer", () => {
             const action = contract.deposit(0, 0 , address);
             await expect(action).to.revertedWith("ANV");
         });
+
+        it('should check for don\'t paused', async () => {
+            await contract.pause();
+
+            const action = contract.deposit(amount0Desired, amount1Desired , address);
+            await expect(action).to.revertedWith("P");
+        })
     })
 
     describe("withdraw", () => {
@@ -172,6 +179,13 @@ describe("PopsicleV3Optimizer", () => {
             const action = contract.withdraw(share, constants.AddressZero);
             await expect(action).to.revertedWith("WZA");
         });
+
+        it('should check for don\'t paused', async () => {
+            await contract.pause();
+
+            const action = contract.withdraw(share, address);
+            await expect(action).to.revertedWith("P");
+        })
     })
 
     describe("rerange", () => {
@@ -193,6 +207,11 @@ describe("PopsicleV3Optimizer", () => {
         it('should emit Rerange event', async () => {
             const action = contract.rerange();
             await expect(action).to.emit(contract, 'Rerange').withArgs(-8220, -5460 , 266644, 70807);
+        })
+
+        it('should call only operator', async () => {
+            const action = contract.connect(other).rerange();
+            await expect(action).to.revertedWith("ONA");
         })
     })
 
@@ -235,6 +254,11 @@ describe("PopsicleV3Optimizer", () => {
             const action = contract.rebalance();
             await expect(action).to.emit(contract, 'Rerange').withArgs(-8700,-240,364878,26010);
         })
+
+        it('should call only operator', async () => {
+            const action = contract.connect(other).rebalance();
+            await expect(action).to.revertedWith("ONA");
+        })
     })
 
     describe("position", () => {
@@ -262,6 +286,28 @@ describe("PopsicleV3Optimizer", () => {
         }) 
     })
 
+    describe("uniswapV3MintCallback", () => {
+        beforeEach("init contract", async () => {
+            await contract.init();
+        })
+
+        it("should call only pool", async () => {
+            const action = contract.uniswapV3MintCallback(0, 0, '0x');
+            await expect(action).to.revertedWith("FP");
+        })
+    })
+
+    describe("uniswapV3SwapCallback", () => {
+        beforeEach("init contract", async () => {
+            await contract.init();
+        })
+
+        it("should call only pool", async () => {
+            const action = contract.uniswapV3SwapCallback(0, 0, '0x');
+            await expect(action).to.revertedWith("FP");
+        })
+    })
+
     describe("collectProtocolFees", () => {
         let address: string;
 
@@ -281,6 +327,16 @@ describe("PopsicleV3Optimizer", () => {
         it('should execute only by the owner', async () => {
             const action = contract.connect(other).collectProtocolFees(0, 0);
             await expect(action).to.revertedWith("OG");
+        })
+
+        it('should chack for protocolFees0 >= amount0', async () => {
+            const action = contract.collectProtocolFees(1, 0);
+            await expect(action).to.revertedWith("A0F");
+        })
+
+        it('should chack for protocolFees1 >= amount1', async () => {
+            const action = contract.collectProtocolFees(0, 1);
+            await expect(action).to.revertedWith("A1F");
         })
     })
     
@@ -423,6 +479,14 @@ describe("PopsicleV3Optimizer", () => {
             await contract.pause();
         })
 
+        it('should check for pause', async () => {
+            await contract.pause();
+
+            const actual = contract.pause();
+
+            await expect(actual).to.revertedWith("P")
+        })
+
         it('should execute only by the owner', async () => {
             const action = contract.connect(other).pause();
             await expect(action).to.revertedWith("OG");
@@ -436,6 +500,14 @@ describe("PopsicleV3Optimizer", () => {
 
         it('should unpause', async () => {
             await contract.unpause();
+        })
+
+        it('should check for pause', async () => {
+            await contract.unpause();
+
+            const actual = contract.unpause();
+
+            await expect(actual).to.revertedWith("NP")
         })
 
         it('should execute only by the owner', async () => {
