@@ -4,3 +4,7 @@
 # Local Compiled files
 bin/
 artifacts/
+
+node_modules/
+typechain/
+cache/

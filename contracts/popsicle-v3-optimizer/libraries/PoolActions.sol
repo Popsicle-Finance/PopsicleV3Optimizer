@@ -20,7 +20,7 @@ library PoolActions {
      * @param totalSupply The amount of total shares in existence
      * @param share to burn
      * @param to Recipient of amounts
-     * @param protocolLiquidity
+     * @param protocolLiquidity liquidity that corresponds to protocol fees
      * @return amount0 Amount of token0 withdrawed
      * @return amount1 Amount of token1 withdrawed
      */
