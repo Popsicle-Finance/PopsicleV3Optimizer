@@ -39,12 +39,12 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
 
     /// @notice Emitted when user adds liquidity
     /// @param sender The address that minted the liquidity
-    /// @param liquidity The amount of liquidity added by the user to position
+    /// @param share The amount of share of liquidity added by the user to position
     /// @param amount0 How much token0 was required for the added liquidity
     /// @param amount1 How much token1 was required for the added liquidity
     event Deposit(
         address indexed sender,
-        uint256 liquidity,
+        uint256 share,
         uint256 amount0,
         uint256 amount1
     );
@@ -210,7 +210,9 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     {
         require(amount0Desired > 0 && amount1Desired > 0, "ANV");
         _earnFees();
-        uint128 liquidityLast = pool.positionLiquidity(tickLower, tickUpper);
+        _compoundFees(); // prevent user drains outher 
+        uint128 protocolLiquidity = pool.liquidityForAmounts(protocolFees0, protocolFees1, tickLower, tickUpper);
+        uint128 liquidityLast = pool.positionLiquidity(tickLower, tickUpper).sub128(protocolLiquidity); // prevent protocol drains users 
         // compute the liquidity amount
         uint128 liquidity = pool.liquidityForAmounts(amount0Desired, amount1Desired, tickLower, tickUpper);
         
@@ -227,7 +229,6 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         _mint(to, shares);
         require(IOptimizerStrategy(strategy).maxTotalSupply() >= totalSupply(), "MTS");
         refundETH();
-        _compoundFees();
         emit Deposit(msg.sender, shares, amount0, amount1);
     }
     
