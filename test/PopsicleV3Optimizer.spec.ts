@@ -12,10 +12,8 @@ import {
     liquidity,
     calcShare,
     getPositionKey,
-    liquidityForAmounts,
     mintAmounts, 
     burnAmounts,
-    exactInputSingle,
     poolDisbalancer
 } from './shared';
 import { PopsicleV3Optimizer, OptimizerStrategy, UniswapV3Pool, ERC20, SwapRouter } from '../typechain';
@@ -50,6 +48,7 @@ describe("PopsicleV3Optimizer", () => {
 
         const contractFactory = await ethers.getContractFactory(POPSICLE_V3_OPTIMIZER_PATH);
         contract = (await contractFactory.deploy(pool.address, strategy.address)) as PopsicleV3Optimizer;
+
 
         for(let token of [token0, token1]){
             await token.approve(contract.address, constants.MaxUint256);
@@ -112,6 +111,16 @@ describe("PopsicleV3Optimizer", () => {
             share = await calcShare(pool, contract, amount0Desired, amount1Desired);
 
             [ amount0, amount1 ] = await mintAmounts(pool, tickLower, tickUpper, _liquidity);
+        });
+
+        beforeEach("pool cardinality", async () => {
+            await pool.increaseObservationCardinalityNext(100);
+        });
+
+        beforeEach("disbalance pool", async () => {
+            await poolDisbalancer([owner, other], router, pool, token0, token1, 0.8);
+
+            await new Promise((rec) => setTimeout(() => rec(""), 100 * 1000));
         })
 
         it('should emit Deposit event', async () => {
@@ -156,6 +165,16 @@ describe("PopsicleV3Optimizer", () => {
             amount1Desired = randomNumber(2);
         });
 
+        beforeEach("pool cardinality", async () => {
+            await pool.increaseObservationCardinalityNext(100);
+        });
+
+        beforeEach("disbalance pool", async () => {
+            await poolDisbalancer([owner, other], router, pool, token0, token1, 0.8);
+
+            await new Promise((rec) => setTimeout(() => rec(""), 100 * 1000));
+        })
+
         beforeEach('deposit', async () => {
             await contract.deposit(amount0Desired, amount1Desired , address);
         })
@@ -191,6 +210,16 @@ describe("PopsicleV3Optimizer", () => {
     describe("rerange", () => {
         beforeEach("init contract", async () => {
             await contract.init();
+        });
+
+        beforeEach("pool cardinality", async () => {
+            await pool.increaseObservationCardinalityNext(100);
+        });
+
+        beforeEach("disbalance pool", async () => {
+            await poolDisbalancer([owner, other], router, pool, token0, token1, 0.7);
+
+            await new Promise((rec) => setTimeout(() => rec(""), 100 * 1000));
         })
 
         beforeEach('deposit', async () => {
@@ -200,13 +229,9 @@ describe("PopsicleV3Optimizer", () => {
             await contract.connect(other).deposit(amount, amount, await other.getAddress());
         });
 
-        beforeEach("disbalance pool", async () => {
-            await poolDisbalancer([owner, other], router, pool, token0, token1, 0.7);
-        })
-
         it('should emit Rerange event', async () => {
             const action = contract.rerange();
-            await expect(action).to.emit(contract, 'Rerange').withArgs(-8220, -5460 , 266644, 70807);
+            await expect(action).to.emit(contract, 'Rerange').withArgs(-7980, -6000 , 188832, 105900);
         })
 
         it('should call only operator', async () => {
@@ -236,6 +261,16 @@ describe("PopsicleV3Optimizer", () => {
             }
         })
 
+        beforeEach("pool cardinality", async () => {
+            await pool.increaseObservationCardinalityNext(100);
+        });
+
+        beforeEach("disbalance pool", async () => {
+            await poolDisbalancer([owner, other], router, pool, token0, token1, 0.8);
+
+            await new Promise((rec) => setTimeout(() => rec(""), 100 * 1000));
+        })
+
         beforeEach("deposit", async() => {
             const amount = 100000;
 
@@ -248,6 +283,8 @@ describe("PopsicleV3Optimizer", () => {
 
         beforeEach("disbalance pool", async () => {
             await poolDisbalancer([owner, other], router, pool, token0, token1);
+
+            await new Promise((rec) => setTimeout(() => rec(""), 100 * 1000));
         })
 
         it('should emit Rerange event', async () => {
