@@ -507,9 +507,9 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         uint256 amount0,
         uint256 amount1
     ) external nonReentrant onlyGovernance {
+        _earnFees();
         require(protocolFees0 >= amount0, "A0F");
         require(protocolFees1 >= amount1, "A1F");
-        _earnFees();
         uint256 balance0 = _balance0();
         uint256 balance1 = _balance1();
         

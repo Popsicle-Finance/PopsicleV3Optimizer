@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.0;
+pragma solidity 0.7.6;
+pragma abicoder v2;
 
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.
@@ -76,8 +77,6 @@ interface IERC20 {
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
-pragma solidity 0.7.6;
-
 interface IPopsicleV3Optimizer {
     /// @notice The first of the two tokens of the pool, sorted by address
     /// @return The token contract address
@@ -141,8 +140,6 @@ interface IPopsicleV3Optimizer {
     function rebalance() external payable;
 }
 
-pragma solidity 0.7.6;
-
 interface IOptimizerStrategy {
     /// @return Maximul PLP value that could be minted
     function maxTotalSupply() external view returns (uint256);
@@ -162,8 +159,6 @@ interface IOptimizerStrategy {
     function priceImpactPercentage() external view returns (uint24);
 }
 
-pragma solidity >=0.5.0;
-
 library PositionKey {
     /// @dev Returns the key of the position in the core library
     function compute(
@@ -174,8 +169,6 @@ library PositionKey {
         return keccak256(abi.encodePacked(owner, tickLower, tickUpper));
     }
 }
-
-pragma solidity >=0.5.0;
 
 /// @title Math library for computing sqrt prices from ticks and vice versa
 /// @notice Computes sqrt price for ticks of size 1.0001, i.e. sqrt(1.0001^tick) as fixed point Q64.96 numbers. Supports
@@ -380,8 +373,6 @@ library TickMath {
     }
 }
 
-pragma solidity >=0.5.0;
-
 
 
 /// @title Liquidity amount functions
@@ -515,13 +506,6 @@ library LiquidityAmounts {
         }
     }
 }
-
-pragma solidity >=0.5.0;
-
-
-
-
-
 
 /// @title Liquidity and ticks functions
 /// @notice Provides functions for computing liquidity and ticks for token amounts and prices
@@ -735,8 +719,6 @@ library PoolVariables {
     }
 }
 
-pragma solidity >=0.5.0;
-
 /// @title Permissionless pool actions
 /// @notice Contains pool methods that can be called by anyone
 interface IUniswapV3PoolActions {
@@ -813,8 +795,6 @@ interface IUniswapV3PoolActions {
     ) external returns (int256 amount0, int256 amount1);
 }
 
-pragma solidity >=0.5.0;
-
 /// @title Pool state that is not stored
 /// @notice Contains view functions to provide information about the pool that is computed rather than stored on the
 /// blockchain. The functions here may have variable gas costs.
@@ -834,8 +814,6 @@ interface IUniswapV3PoolDerivedState {
         view
         returns (int56[] memory tickCumulatives, uint160[] memory secondsPerLiquidityCumulativeX128s);
 }
-
-pragma solidity >=0.5.0;
 
 /// @title Pool state that can change
 /// @notice These methods compose the pool's state, and can change with any frequency including multiple times
@@ -886,8 +864,6 @@ interface IUniswapV3PoolState {
         );
 }
 
-pragma solidity >=0.5.0;
-
 /// @title Pool state that never changes
 /// @notice These parameters are fixed for a pool forever, i.e., the methods will always return the same values
 interface IUniswapV3PoolImmutables {
@@ -908,8 +884,6 @@ interface IUniswapV3PoolImmutables {
     function tickSpacing() external view returns (int24);
 }
 
-pragma solidity >=0.5.0;
-
 /// @title The interface for a Uniswap V3 Pool
 /// @notice A Uniswap pool facilitates swapping and automated market making between any two assets that strictly conform
 /// to the ERC20 specification
@@ -922,11 +896,6 @@ interface IUniswapV3Pool is
 {
 
 }
-
-pragma solidity 0.7.6;
-pragma abicoder v2;
-
-
 
 /// @title This library is created to conduct a variety of burn liquidity methods
 library PoolActions {
@@ -1038,8 +1007,6 @@ library PoolActions {
     }
 }
 
-pragma solidity >=0.4.0;
-
 // computes square roots using the babylonian method
 // https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Babylonian_method
 library Babylonian {
@@ -1090,9 +1057,6 @@ library Babylonian {
     }
 }
 
-pragma solidity ^0.7.0;
-
-
 /**
  * @title Counters
  * @author Matt Condon (@shrugs)
@@ -1124,8 +1088,6 @@ library Counters {
     }
 }
 
-pragma solidity >=0.7.0;
-
 /// @title Function for getting the current chain ID
 library ChainId {
     /// @dev Gets the current chain ID
@@ -1136,8 +1098,6 @@ library ChainId {
         }
     }
 }
-
-pragma solidity =0.7.6;
 
 /**
  * @dev Elliptic Curve Digital Signature Algorithm (ECDSA) operations.
@@ -1183,10 +1143,6 @@ library ECDSA {
         return keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
     }
 }
-
-pragma solidity =0.7.6;
-
-
 
 /**
  * @dev https://eips.ethereum.org/EIPS/eip-712[EIP 712] is a standard for hashing and signing of typed structured data.
@@ -1285,8 +1241,6 @@ abstract contract EIP712 {
     }
 }
 
-pragma solidity >=0.6.0 <0.8.0;
-
 /**
  * @dev Interface of the ERC20 Permit extension allowing approvals to be made via signatures, as defined in
  * https://eips.ethereum.org/EIPS/eip-2612[EIP-2612].
@@ -1335,8 +1289,6 @@ interface IERC20Permit {
     function DOMAIN_SEPARATOR() external view returns (bytes32);
 }
 
-pragma solidity >=0.6.0 <0.8.0;
-
 /*
  * @dev Provides information about the current execution context, including the
  * sender of the transaction and its data. While these are generally available
@@ -1357,11 +1309,6 @@ abstract contract Context {
         return msg.data;
     }
 }
-
-pragma solidity ^0.7.0;
-
-
-
 
 /**
  * @dev Implementation of the {IERC20} interface.
@@ -1662,8 +1609,6 @@ contract ERC20 is Context, IERC20 {
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual { }
 }
 
-pragma solidity =0.7.6;
-
 /**
  * @dev Implementation of the ERC20 Permit extension allowing approvals to be made via signatures, as defined in
  * https://eips.ethereum.org/EIPS/eip-2612[EIP-2612].
@@ -1741,8 +1686,6 @@ abstract contract ERC20Permit is ERC20, IERC20Permit, EIP712 {
     }
 }
 
-pragma solidity >=0.4.0;
-
 /// @title FixedPoint96
 /// @notice A library for handling binary fixed point numbers, see https://en.wikipedia.org/wiki/Q_(number_format)
 /// @dev Used in SqrtPriceMath.sol
@@ -1750,8 +1693,6 @@ library FixedPoint96 {
     uint8 internal constant RESOLUTION = 96;
     uint256 internal constant Q96 = 0x1000000000000000000000000;
 }
-
-pragma solidity >=0.5.0;
 
 /// @title Math functions that do not check inputs or outputs
 /// @notice Contains methods that perform common math functions but do not do any overflow or underflow checks
@@ -1778,8 +1719,6 @@ library UnsafeMath {
         }
     }
 }
-
-pragma solidity >=0.4.0;
 
 /// @title Contains 512-bit math functions
 /// @notice Facilitates multiplication and division that can have overflow of an intermediate value without any loss of precision
@@ -1903,8 +1842,6 @@ library FullMath {
     }
 }
 
-pragma solidity >=0.5.0;
-
 /// @title Safe casting methods
 /// @notice Contains methods for safely casting between types
 library SafeCast {
@@ -1937,8 +1874,6 @@ library SafeCast {
         z = int256(y);
     }
 }
-
-pragma solidity >=0.7.0;
 
 /// @title Optimized overflow and underflow safe math operations
 /// @notice Contains methods for doing math operations that revert on overflow or underflow for minimal gas cost
@@ -2040,13 +1975,6 @@ library LowGasSafeMath {
     }
 }
 
-pragma solidity >=0.5.0;
-
-
-
-
-
-
 /// @title Functions based on Q64.96 sqrt price and liquidity
 /// @notice Contains the math that uses square root of price as a Q64.96 and liquidity to compute deltas
 library SqrtPriceMath {
@@ -2136,8 +2064,6 @@ library SqrtPriceMath {
     }
 }
 
-pragma solidity >=0.6.0;
-
 
 library TransferHelper {
     /// @notice Transfers tokens from the targeted address to the given destination
@@ -2180,9 +2106,6 @@ library TransferHelper {
         require(success, 'STE');
     }
 }
-
-
-pragma solidity ^0.7.0;
 
 /**
  * @dev Contract module that helps prevent reentrant calls to a function.
@@ -2243,16 +2166,12 @@ abstract contract ReentrancyGuard {
     }
 }
 
-pragma solidity =0.7.6;
-
 
 /// @title Interface for WETH9
 interface IWETH9 is IERC20 {
     /// @notice Deposit ether to get wrapped ether
     function deposit() external payable;
 }
-
-pragma solidity 0.7.6;
 
 /// @title PopsicleV3 Optimizer is a yield enchancement v3 contract
 /// @dev PopsicleV3 Optimizer is a Uniswap V3 yield enchancement contract which acts as
@@ -2748,9 +2667,9 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         uint256 amount0,
         uint256 amount1
     ) external nonReentrant onlyGovernance {
+        _earnFees();
         require(protocolFees0 >= amount0, "A0F");
         require(protocolFees1 >= amount1, "A1F");
-        _earnFees();
         uint256 balance0 = _balance0();
         uint256 balance1 = _balance1();
         
