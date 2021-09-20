@@ -293,7 +293,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
             tickUpper,
             liquidity,
             abi.encode(MintCallbackData({payer: address(this)})));
-        block.coinbase.transfer(msg.value); //pay to miner. more info https://github.com/flashbots/pm
+        // block.coinbase.transfer(msg.value); //pay to miner. more info https://github.com/flashbots/pm
         emit Rerange(tickLower, tickUpper, amount0, amount1);
     }
 
@@ -360,7 +360,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
             cache.liquidity,
             abi.encode(MintCallbackData({payer: address(this)})));
 
-        block.coinbase.transfer(msg.value); //pay to miner. more info https://github.com/flashbots/pm
+        // block.coinbase.transfer(msg.value); //pay to miner. more info https://github.com/flashbots/pm
 
         emit Rerange(tickLower, tickUpper, cache.amount0, cache.amount1);
     }
