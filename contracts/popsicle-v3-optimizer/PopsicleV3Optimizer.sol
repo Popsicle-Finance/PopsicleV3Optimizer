@@ -128,6 +128,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     address public constant weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     // @inheritdoc IPopsicleV3Optimizer
     int24 public immutable override tickSpacing;
+    uint constant GLOBAL_MULTIPLIER = 1e6;
     uint24 constant GLOBAL_DIVISIONER = 1e6; // for basis point (0.0001%)
     //The protocol's fee in hundredths of a bip, i.e. 1e-6
     uint24 constant protocolFee = 1e5; 
@@ -197,7 +198,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         address to
     )
         external
-        payable
+        // payable
         override
         nonReentrant
         checkDeviation
@@ -224,11 +225,11 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
             abi.encode(MintCallbackData({payer: msg.sender})));
         
         
-        shares = _calcShare(liquidity, liquidityLast);
+        shares = _calcShare(liquidity*GLOBAL_MULTIPLIER, liquidityLast*GLOBAL_MULTIPLIER);
 
         _mint(to, shares);
         require(IOptimizerStrategy(strategy).maxTotalSupply() >= totalSupply(), "MTS");
-        refundETH();
+        // refundETH();
         emit Deposit(msg.sender, shares, amount0, amount1);
     }
     
@@ -249,24 +250,26 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     {
         require(shares > 0, "S");
         require(to != address(0), "WZA");
-        (uint256 collect0, uint256 collect1) = _earnFees();
+        // (uint256 collect0, uint256 collect1) = _earnFees();
+        _earnFees();
+        _compoundFees();
         //Get Liquidity for ProtocolFee
         uint128 protocolLiquidity = pool.liquidityForAmounts(protocolFees0, protocolFees1, tickLower, tickUpper);
         
         (amount0, amount1) = pool.burnLiquidityShare(tickLower, tickUpper, totalSupply(), shares,  to, protocolLiquidity);
         
-        uint256 userFees0 = collect0.mul(shares) / totalSupply();
-        uint256 userFees1 = collect1.mul(shares) / totalSupply();
-        // Burn shares
-        _burn(msg.sender, shares);
-        if (userFees0 > 0) pay(token0, address(this), to, userFees0);
-        if (userFees1 > 0) pay(token1, address(this), to, userFees1);
-        _compoundFees();
-        emit Withdraw(msg.sender, shares, amount0, amount1, userFees0, userFees1);
+        // uint256 userFees0 = collect0.mul(shares) / totalSupply();
+        // uint256 userFees1 = collect1.mul(shares) / totalSupply();
+        // // Burn shares
+        // _burn(msg.sender, shares);
+        // if (userFees0 > 0) pay(token0, address(this), to, userFees0);
+        // if (userFees1 > 0) pay(token1, address(this), to, userFees1);
+        
+        emit Withdraw(msg.sender, shares, amount0, amount1, 0, 0); //userFees0, userFees1
     }
     
     /// @inheritdoc IPopsicleV3Optimizer
-    function rerange() external payable override nonReentrant checkDeviation {
+    function rerange() external override nonReentrant checkDeviation {
         require(_operatorApproved[msg.sender], "ONA");
         _earnFees();
         //Burn all liquidity from pool to rerange for Optimizer's balances.
@@ -298,7 +301,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     }
 
     /// @inheritdoc IPopsicleV3Optimizer
-    function rebalance() external payable override nonReentrant checkDeviation {
+    function rebalance() external override nonReentrant checkDeviation {
         require(_operatorApproved[msg.sender], "ONA");
         _earnFees();
         //Burn all liquidity from pool to rerange for Optimizer's balances.
@@ -366,14 +369,14 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     }
 
     // Calcs user share depending on deposited amounts
-    function _calcShare(uint128 liquidity, uint128 liquidityLast)
+    function _calcShare(uint256 liquidity, uint256 liquidityLast)
         internal
         view
         returns (
             uint256 shares
         )
     {
-        shares = totalSupply() == 0 ? uint256(liquidity) : uint256(liquidity).mul(totalSupply()).unsafeDiv(uint256(liquidityLast));
+        shares = totalSupply() == 0 ? liquidity : liquidity.mul(totalSupply()).unsafeDiv(liquidityLast);
     }
     
     /// @dev Amount of token0 held as unused balance.
