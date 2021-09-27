@@ -186,7 +186,7 @@ describe("PopsicleV3Optimizer", () => {
 
         it('should emit Withdraw event', async () => {
             const action = contract.withdraw(share, address);
-            await expect(action).to.emit(contract, 'Withdraw').withArgs(address, share, amount0, amount1, 0, 0);
+            await expect(action).to.emit(contract, 'Withdraw').withArgs(address, share, amount0, amount1);
         })
 
         it('should check for shares amount', async () => {
