@@ -40,7 +40,7 @@ interface IPopsicleV3Optimizer {
      * @return amount0 Amount of token0 deposited
      * @return amount1 Amount of token1 deposited
      */
-    function deposit(uint256 amount0Desired, uint256 amount1Desired, address to) external payable returns (uint256 shares, uint256 amount0,uint256 amount1);
+    function deposit(uint256 amount0Desired, uint256 amount1Desired, address to) external returns (uint256 shares, uint256 amount0,uint256 amount1);
 
     /**
      * @notice Withdraws tokens in proportion to the Optimizer's holdings.
@@ -56,7 +56,7 @@ interface IPopsicleV3Optimizer {
      * @dev Finds base position and limit position for imbalanced token
      * mints all amounts to this position(including earned fees)
      */
-    function rerange() external payable;
+    function rerange() external;
 
     /**
      * @notice Updates Optimizer's positions. Can only be called by the governance.
@@ -64,5 +64,5 @@ interface IPopsicleV3Optimizer {
      * we don't have balance during swap because of price impact.
      * mints all amounts to this position(including earned fees)
      */
-    function rebalance() external payable;
+    function rebalance() external;
 }

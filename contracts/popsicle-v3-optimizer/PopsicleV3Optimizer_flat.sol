@@ -113,7 +113,7 @@ interface IPopsicleV3Optimizer {
      * @return amount0 Amount of token0 deposited
      * @return amount1 Amount of token1 deposited
      */
-    function deposit(uint256 amount0Desired, uint256 amount1Desired, address to) external payable returns (uint256 shares, uint256 amount0,uint256 amount1);
+    function deposit(uint256 amount0Desired, uint256 amount1Desired, address to) external returns (uint256 shares, uint256 amount0,uint256 amount1);
 
     /**
      * @notice Withdraws tokens in proportion to the Optimizer's holdings.
@@ -129,7 +129,7 @@ interface IPopsicleV3Optimizer {
      * @dev Finds base position and limit position for imbalanced token
      * mints all amounts to this position(including earned fees)
      */
-    function rerange() external payable;
+    function rerange() external;
 
     /**
      * @notice Updates Optimizer's positions. Can only be called by the governance.
@@ -137,7 +137,7 @@ interface IPopsicleV3Optimizer {
      * we don't have balance during swap because of price impact.
      * mints all amounts to this position(including earned fees)
      */
-    function rebalance() external payable;
+    function rebalance() external;
 }
 
 interface IOptimizerStrategy {
@@ -2096,15 +2096,6 @@ library TransferHelper {
         (bool success, bytes memory data) = token.call(abi.encodeWithSelector(IERC20.transfer.selector, to, value));
         require(success && (data.length == 0 || abi.decode(data, (bool))), 'ST');
     }
-
-    /// @notice Transfers ETH to the recipient address
-    /// @dev Fails with `STE`
-    /// @param to The destination of the transfer
-    /// @param value The value to be transferred
-    function safeTransferETH(address to, uint256 value) internal {
-        (bool success, ) = to.call{value: value}(new bytes(0));
-        require(success, 'STE');
-    }
 }
 
 /**
@@ -2214,15 +2205,11 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     /// @param shares of liquidity withdrawn by the user from the position
     /// @param amount0 How much token0 was required for the added liquidity
     /// @param amount1 How much token1 was required for the added liquidity
-    /// @param fee0 Amount of fees of token0 collected by user during last period
-    /// @param fee1 Amount of fees of token1 collected by user during last period
     event Withdraw(
         address indexed sender,
         uint256 shares,
         uint256 amount0,
-        uint256 amount1,
-        uint256 fee0,
-        uint256 fee1
+        uint256 amount1
     );
     
     /// @notice Emitted when fees was collected from the pool
@@ -2288,6 +2275,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     address public constant weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     // @inheritdoc IPopsicleV3Optimizer
     int24 public immutable override tickSpacing;
+    uint constant MULTIPLIER = 1e6;
     uint24 constant GLOBAL_DIVISIONER = 1e6; // for basis point (0.0001%)
     //The protocol's fee in hundredths of a bip, i.e. 1e-6
     uint24 constant protocolFee = 1e5; 
@@ -2357,7 +2345,6 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         address to
     )
         external
-        payable
         override
         nonReentrant
         checkDeviation
@@ -2370,7 +2357,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     {
         require(amount0Desired > 0 && amount1Desired > 0, "ANV");
         _earnFees();
-        _compoundFees(); // prevent user drains outher 
+        _compoundFees(); // prevent user drains others
         uint128 protocolLiquidity = pool.liquidityForAmounts(protocolFees0, protocolFees1, tickLower, tickUpper);
         uint128 liquidityLast = pool.positionLiquidity(tickLower, tickUpper).sub128(protocolLiquidity); // prevent protocol drains users 
         // compute the liquidity amount
@@ -2384,11 +2371,10 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
             abi.encode(MintCallbackData({payer: msg.sender})));
         
         
-        shares = _calcShare(liquidity, liquidityLast);
+        shares = _calcShare(liquidity*MULTIPLIER, liquidityLast*MULTIPLIER);
 
         _mint(to, shares);
         require(IOptimizerStrategy(strategy).maxTotalSupply() >= totalSupply(), "MTS");
-        refundETH();
         emit Deposit(msg.sender, shares, amount0, amount1);
     }
     
@@ -2409,24 +2395,21 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     {
         require(shares > 0, "S");
         require(to != address(0), "WZA");
-        (uint256 collect0, uint256 collect1) = _earnFees();
+        _earnFees();
+        _compoundFees();
         //Get Liquidity for ProtocolFee
         uint128 protocolLiquidity = pool.liquidityForAmounts(protocolFees0, protocolFees1, tickLower, tickUpper);
         
         (amount0, amount1) = pool.burnLiquidityShare(tickLower, tickUpper, totalSupply(), shares,  to, protocolLiquidity);
         
-        uint256 userFees0 = collect0.mul(shares) / totalSupply();
-        uint256 userFees1 = collect1.mul(shares) / totalSupply();
         // Burn shares
         _burn(msg.sender, shares);
-        if (userFees0 > 0) pay(token0, address(this), to, userFees0);
-        if (userFees1 > 0) pay(token1, address(this), to, userFees1);
-        _compoundFees();
-        emit Withdraw(msg.sender, shares, amount0, amount1, userFees0, userFees1);
+
+        emit Withdraw(msg.sender, shares, amount0, amount1);
     }
     
     /// @inheritdoc IPopsicleV3Optimizer
-    function rerange() external payable override nonReentrant checkDeviation {
+    function rerange() external override nonReentrant checkDeviation {
         require(_operatorApproved[msg.sender], "ONA");
         _earnFees();
         //Burn all liquidity from pool to rerange for Optimizer's balances.
@@ -2453,12 +2436,12 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
             tickUpper,
             liquidity,
             abi.encode(MintCallbackData({payer: address(this)})));
-        // block.coinbase.transfer(msg.value); //pay to miner. more info https://github.com/flashbots/pm
+
         emit Rerange(tickLower, tickUpper, amount0, amount1);
     }
 
     /// @inheritdoc IPopsicleV3Optimizer
-    function rebalance() external payable override nonReentrant checkDeviation {
+    function rebalance() external override nonReentrant checkDeviation {
         require(_operatorApproved[msg.sender], "ONA");
         _earnFees();
         //Burn all liquidity from pool to rerange for Optimizer's balances.
@@ -2520,20 +2503,18 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
             cache.liquidity,
             abi.encode(MintCallbackData({payer: address(this)})));
 
-        // block.coinbase.transfer(msg.value); //pay to miner. more info https://github.com/flashbots/pm
-
         emit Rerange(tickLower, tickUpper, cache.amount0, cache.amount1);
     }
 
     // Calcs user share depending on deposited amounts
-    function _calcShare(uint128 liquidity, uint128 liquidityLast)
+    function _calcShare(uint256 liquidity, uint256 liquidityLast)
         internal
         view
         returns (
             uint256 shares
         )
     {
-        shares = totalSupply() == 0 ? uint256(liquidity) : uint256(liquidity).mul(totalSupply()).unsafeDiv(uint256(liquidityLast));
+        shares = totalSupply() == 0 ? liquidity : liquidity.mul(totalSupply()).unsafeDiv(liquidityLast);
     }
     
     /// @dev Amount of token0 held as unused balance.
@@ -2547,13 +2528,13 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     }
     
     /// @dev collects fees from the pool
-    function _earnFees() internal returns (uint256 collect0, uint256 collect1) {
+    function _earnFees() internal {
         uint liquidity = pool.positionLiquidity(tickLower, tickUpper);
-        if (liquidity == 0) return (0,0); // we can't poke when liquidity is zero
+        if (liquidity == 0) return; // we can't poke when liquidity is zero
          // Do zero-burns to poke the Uniswap pools so earned fees are updated
         pool.burn(tickLower, tickUpper, 0);
         
-        (collect0, collect1) =
+        (uint256 collect0, uint256 collect1) =
             pool.collect(
                 address(this),
                 tickLower,
@@ -2569,8 +2550,6 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         protocolFees1 = protocolFees1.add(earnedProtocolFees1);
         totalFees0 = totalFees0.add(collect0);
         totalFees1 = totalFees1.add(collect1);
-        collect0 = collect0.sub(earnedProtocolFees0);
-        collect1 = collect1.sub(earnedProtocolFees1);
         emit CollectFees(collect0, collect1, totalFees0, totalFees1);
     }
 
@@ -2697,13 +2676,6 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     modifier checkDeviation() {
         pool.checkDeviation(IOptimizerStrategy(strategy).maxTwapDeviation(), IOptimizerStrategy(strategy).twapDuration());
         _;
-    }
-    
-    /// @notice Refunds any ETH balance held by this contract to the `msg.sender`
-    /// @dev Useful for bundling with mint or increase liquidity that uses ether, or exact output swaps
-    /// that use ether for the input amount
-    function refundETH() internal {
-        if (address(this).balance > 0) TransferHelper.safeTransferETH(msg.sender, address(this).balance);
     }
 
     /**
