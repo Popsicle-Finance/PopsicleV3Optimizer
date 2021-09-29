@@ -1,10 +1,10 @@
 pragma solidity 0.7.6;
 pragma abicoder v2;
 
-import '../../contracts/popsicle-v3-optimizer/interfaces/IUniswapV3Pool.sol';
+import {IUniswapV3Pool} from '../../contracts/popsicle-v3-optimizer/interfaces/IUniswapV3Pool.sol';
 import {PoolVariables} from '../../contracts/popsicle-v3-optimizer/libraries/PoolVariables.sol';
 import {SafeCast} from '../../contracts/popsicle-v3-optimizer/libraries/SafeCast.sol';
-import '../../contracts/popsicle-v3-optimizer/libraries/PoolActions.sol';
+import {PoolActions} from '../../contracts/popsicle-v3-optimizer/libraries/PoolActions.sol';
 
 contract PoolActionsWrapper{
     using PoolActions for *;
