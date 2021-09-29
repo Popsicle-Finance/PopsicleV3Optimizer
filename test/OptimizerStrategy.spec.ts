@@ -12,7 +12,7 @@ describe("OptimizerStrategy", function () {
     [, addr1] = await ethers.getSigners();
 
     const contractFactory = await ethers.getContractFactory(OPTIMIZER_STRATEGY_PATH);
-    contract = (await contractFactory.deploy(1 , 0 , 1, 1, 1)) as OptimizerStrategy;
+    contract = (await contractFactory.deploy(100 , 20 , 1, 1, 1)) as OptimizerStrategy;
   });
 
   describe('setMaxTotalSupply', function() {

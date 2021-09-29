@@ -34,7 +34,7 @@ export default {
     artifacts: "./artifacts"
   },
   mocha: {
-    timeout: 20000
+    timeout: 200000
   },
   typechain: {
     target: 'ethers-v5',
