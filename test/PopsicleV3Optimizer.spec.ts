@@ -117,15 +117,15 @@ describe("PopsicleV3Optimizer", () => {
             await pool.increaseObservationCardinalityNext(100);
         });
 
-        beforeEach("disbalance pool", async () => {
-            await poolDisbalancer([owner, other], router, pool, token0, token1, 0.8);
-
+        beforeEach(async () => {
             await new Promise((rec) => setTimeout(() => rec(""), 100 * 1000));
         })
 
         it('should emit Deposit event', async () => {
             const action = contract.deposit(amount0Desired, amount1Desired , address);
-            await expect(action).to.emit(contract, "Deposit").withArgs(address, share, amount0, amount1);
+            const shareMultiplier = Number(share) * Math.pow(10, 6);
+
+            await expect(action).to.emit(contract, "Deposit").withArgs(address, shareMultiplier, amount0, amount1);
         });
 
         it('should check for zero amount', async () => {
@@ -169,9 +169,7 @@ describe("PopsicleV3Optimizer", () => {
             await pool.increaseObservationCardinalityNext(100);
         });
 
-        beforeEach("disbalance pool", async () => {
-            await poolDisbalancer([owner, other], router, pool, token0, token1, 0.8);
-
+        beforeEach(async () => {
             await new Promise((rec) => setTimeout(() => rec(""), 100 * 1000));
         })
 
@@ -216,9 +214,7 @@ describe("PopsicleV3Optimizer", () => {
             await pool.increaseObservationCardinalityNext(100);
         });
 
-        beforeEach("disbalance pool", async () => {
-            await poolDisbalancer([owner, other], router, pool, token0, token1, 0.7);
-
+        beforeEach(async () => {
             await new Promise((rec) => setTimeout(() => rec(""), 100 * 1000));
         })
 
@@ -265,9 +261,7 @@ describe("PopsicleV3Optimizer", () => {
             await pool.increaseObservationCardinalityNext(100);
         });
 
-        beforeEach("disbalance pool", async () => {
-            await poolDisbalancer([owner, other], router, pool, token0, token1, 0.8);
-
+        beforeEach(async () => {
             await new Promise((rec) => setTimeout(() => rec(""), 100 * 1000));
         })
 
