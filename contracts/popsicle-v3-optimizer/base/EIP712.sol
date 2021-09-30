@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity =0.7.6;
-
-import "../libraries/ECDSA.sol";
-import '../libraries/ChainId.sol';
+pragma solidity ^0.7.0;
 
 /**
  * @dev https://eips.ethereum.org/EIPS/eip-712[EIP 712] is a standard for hashing and signing of typed structured data.
@@ -26,14 +23,10 @@ import '../libraries/ChainId.sol';
  */
 abstract contract EIP712 {
     /* solhint-disable var-name-mixedcase */
-    // Cache the domain separator as an immutable value, but also store the chain id that it corresponds to, in order to
-    // invalidate the cached domain separator if the chain id changes.
-    bytes32 private immutable _CACHED_DOMAIN_SEPARATOR;
-    uint256 private immutable _CACHED_CHAIN_ID;
-
     bytes32 private immutable _HASHED_NAME;
     bytes32 private immutable _HASHED_VERSION;
     bytes32 private immutable _TYPE_HASH;
+
     /* solhint-enable var-name-mixedcase */
 
     /**
@@ -49,37 +42,16 @@ abstract contract EIP712 {
      * contract upgrade].
      */
     constructor(string memory name, string memory version) {
-        bytes32 hashedName = keccak256(bytes(name));
-        bytes32 hashedVersion = keccak256(bytes(version));
-        bytes32 typeHash = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
-        _HASHED_NAME = hashedName;
-        _HASHED_VERSION = hashedVersion;
-        _CACHED_CHAIN_ID = ChainId.get();
-        _CACHED_DOMAIN_SEPARATOR = _buildDomainSeparator(typeHash, hashedName, hashedVersion);
-        _TYPE_HASH = typeHash;
+        _HASHED_NAME = keccak256(bytes(name));
+        _HASHED_VERSION = keccak256(bytes(version));
+        _TYPE_HASH = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
     }
 
     /**
      * @dev Returns the domain separator for the current chain.
      */
-    function _domainSeparatorV4() internal view returns (bytes32) {
-        if (ChainId.get() == _CACHED_CHAIN_ID) {
-            return _CACHED_DOMAIN_SEPARATOR;
-        } else {
-            return _buildDomainSeparator(_TYPE_HASH, _HASHED_NAME, _HASHED_VERSION);
-        }
-    }
-
-    function _buildDomainSeparator(bytes32 typeHash, bytes32 name, bytes32 version) private view returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                typeHash,
-                name,
-                version,
-                ChainId.get(),
-                address(this)
-            )
-        );
+    function _domainSeparatorV4() internal view virtual returns (bytes32) {
+        return keccak256(abi.encode(_TYPE_HASH, _HASHED_NAME, _HASHED_VERSION, _getChainId(), address(this)));
     }
 
     /**
@@ -98,6 +70,18 @@ abstract contract EIP712 {
      * ```
      */
     function _hashTypedDataV4(bytes32 structHash) internal view virtual returns (bytes32) {
-        return ECDSA.toTypedDataHash(_domainSeparatorV4(), structHash);
+        return keccak256(abi.encodePacked("\x19\x01", _domainSeparatorV4(), structHash));
+    }
+
+    function _getChainId() private view returns (uint256 chainId) {
+        // Silence state mutability warning without generating bytecode.
+        // See https://github.com/ethereum/solidity/issues/10090#issuecomment-741789128 and
+        // https://github.com/ethereum/solidity/issues/2691
+        this;
+
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            chainId := chainid()
+        }
     }
 }

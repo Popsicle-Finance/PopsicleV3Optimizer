@@ -23,6 +23,7 @@ contract OptimizerStrategy is IOptimizerStrategy {
     /// @inheritdoc IOptimizerStrategy
     uint24 public override priceImpactPercentage;
     
+    event TransferGovernance(address indexed previousGovernance, address indexed newGovernance);
     
     /**
      * @param _twapDuration TWAP duration in seconds for rebalance check
@@ -45,8 +46,8 @@ contract OptimizerStrategy is IOptimizerStrategy {
         maxTotalSupply = _maxTotalSupply;
         governance = msg.sender;
 
-        require(_maxTwapDeviation >= 0, "maxTwapDeviation");
-        require(_twapDuration > 0, "twapDuration");
+        require(_maxTwapDeviation >= 20, "maxTwapDeviation");
+        require(_twapDuration >= 100, "twapDuration");
         require(_priceImpactPercentage < 1e6 && _priceImpactPercentage > 0, "PIP");
         require(maxTotalSupply > 0, "maxTotalSupply");
     }
@@ -62,12 +63,12 @@ contract OptimizerStrategy is IOptimizerStrategy {
     }
 
     function setTwapDuration(uint32 _twapDuration) external onlyGovernance {
-        require(_twapDuration > 0, "twapDuration");
+        require(_twapDuration >= 100, "twapDuration");
         twapDuration = _twapDuration;
     }
 
     function setMaxTwapDeviation(int24 _maxTwapDeviation) external onlyGovernance {
-        require(_maxTwapDeviation > 0, "PF");
+        require(_maxTwapDeviation >= 20, "PF");
         maxTwapDeviation = _maxTwapDeviation;
     }
 
@@ -95,6 +96,8 @@ contract OptimizerStrategy is IOptimizerStrategy {
      */
     function acceptGovernance() external {
         require(msg.sender == pendingGovernance, "PG");
+        emit TransferGovernance(governance, pendingGovernance);
+        pendingGovernance = address(0);
         governance = msg.sender;
     }
 }
