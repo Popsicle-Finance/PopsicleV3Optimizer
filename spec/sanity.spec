@@ -22,13 +22,13 @@ rule sanityForView(method f) filtered { f -> f.isView }  {
 }
 
 
-rule reentrency(method f) filtered { f -> !f.isView } {
-	env e;
-	calldataarg args;
-	require _status(e) == 2;
-	f@withrevert(e,args);
-	assert lastReverted; 
-}
+// rule reentrency(method f) filtered { f -> !f.isView } {
+// 	env e;
+// 	calldataarg args;
+// 	require _status(e) == 2;
+// 	f@withrevert(e,args);
+// 	assert lastReverted; 
+// }
 
 /*
 amountsForLiquidity(pool, totalSupply()
