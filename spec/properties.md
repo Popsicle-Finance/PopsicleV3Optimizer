@@ -63,5 +63,21 @@
   ## impact by uniswap
      first deposit or swap with flashloan to uniswap and optimizer will be effected 
 
-    
+// rule about rebalance:
+after calling rebalance, token0.balanceOf(this)==0 and token1.balanceOf(this)==0
 
+// fix to solvency of the system: the ratio of token0 and token1 can change so // the share price must be calculated by liquidty
+    liquidity = positionLiqudity(pool, tickLower, tickUpper)
+    usersLiquidty = liquidity - protocolLiquidity
+    amountInUniswapPerShare = userLiquidity / totalSupply()
+
+    amountInUniswapPerShare should stay the same on withdraw, deposit, ERC20 functions    
+
+// rules on protocolFees:
+oldLiquidity=positionLiqudity(pool, tickLower, tickUpper)
+oldProtolLiquidity=pool.liquidityForAmounts(protocolFees0, protocolFees1, tickLower, tickUpper)
+swap(…)
+_earnFees()
+_compundFees()
+newLiquidity=positionLiqudity(pool, tickLower, tickUpper)
+assert (pool.liquidityForAmounts(protocolFees0, protocolFees1, tickLower, tickUpper)-oldProtocolLiquidity)*10==newLiquidity-oldLiquidty
