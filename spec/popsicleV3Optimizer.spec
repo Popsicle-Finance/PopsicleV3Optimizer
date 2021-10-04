@@ -1,7 +1,12 @@
 methods {
+
+	//math functions 
 	floor(int24 tick, int24 tickSpacing) => NONDET
 	getSqrtRatioAtTick(int24 tick) => NONDET
 	getTickAtSqrtRatio(uint160 sqrtPriceX96) => NONDET
+	sqrt(uint256 x) => approximateSqrt(x)
+	mulDiv(uint256 a, uint256 b, uint256 denominator) => NONDET
+	mulDivRoundingUp(uint256 a, uint256 b, uint256 denominator) => NONDET
 
 	//interface IOptimizerStrategy 
     maxTotalSupply() => NONDET
@@ -27,7 +32,7 @@ methods {
         uint128 amount,
         bytes  data
     ) => DISPATCHER(true) 
-	
+
     collect(
         address recipient,
         int24 tickLower,
@@ -50,8 +55,28 @@ methods {
         bytes data
     ) => DISPATCHER(true) 
 
+
+	// pool callback
+	uniswapV3MintCallback(
+        uint256 amount0,
+        uint256 amount1,
+        bytes data
+    ) => DISPATCHER(true)
+
+	uniswapV3SwapCallback(
+        int256 amount0,
+        int256 amount1,
+        bytes  data
+    ) => DISPATCHER(true)
+
 }
 
+ghost approximateSqrt(uint256) returns uint256;
+/* {
+  axiom forall uint256 x.
+	(x == 0 => approximateSqrt(x) ==0) &&
+	( x >0 => approximateSqrt(x) == x/4 +1 );
+}*/
 	
 
 rule sanity(method f) filtered { f -> !f.isView  && f.selector != rebalance().selector  }  {
