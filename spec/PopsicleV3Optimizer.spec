@@ -1,7 +1,27 @@
 methods {
+	//math functions 
 	floor(int24 tick, int24 tickSpacing) => NONDET
 	getSqrtRatioAtTick(int24 tick) => NONDET
 	getTickAtSqrtRatio(uint160 sqrtPriceX96) => NONDET
+    sqrt(uint256 x) => approximateSqrt(x)
+	mulDiv(uint256 a, uint256 b, uint256 denominator) => NONDET
+	mulDivRoundingUp(uint256 a, uint256 b, uint256 denominator) => NONDET
+	amountsForLiquidity(address pool,
+        uint128 liquidity,
+        int24 _tickLower,
+        int24 _tickUpper) => NONDET
+	liquidityForAmounts(address pool,
+        uint256 amount0,
+        uint256 amount1,
+        int24 _tickLower,
+        int24 _tickUpper) => NONDET
+	positionLiquidity(address pool, int24 _tickLower, int24 _tickUpper) => NONDET
+	getPositionTicks(address pool, uint256 amount0Desired, uint256 amount1Desired, int24 baseThreshold, int24 tickSpacing) => NONDET
+	amountsForTicks(address pool, uint256 amount0Desired, uint256 amount1Desired, int24 _tickLower, int24 _tickUpper) => NONDET
+	baseTicks(int24 currentTick, int24 baseThreshold, int24 tickSpacing) => NONDET
+	amountsDirection(uint256 amount0Desired, uint256 amount1Desired, uint256 amount0, uint256 amount1) => NONDET
+	checkDeviation(address pool, int24 maxTwapDeviation, uint32 twapDuration) => NONDET
+	getTwap(address pool, uint32 twapDuration) => NONDET
 
 	//interface IOptimizerStrategy 
     maxTotalSupply() => NONDET
@@ -11,15 +31,16 @@ methods {
 	priceImpactPercentage() => NONDET
 
 	// ERC20
-    transfer(address, uint256) => DISPATCHER(true) 
-    transferFrom(address, address, uint256) => DISPATCHER(true) 
-    totalSupply() => DISPATCHER(true)
-    balanceOf(address) returns (uint256) => DISPATCHER(true)
+ // transfer(address, uint256) => DISPATCHER(true) 
+   // transferFrom(address, address, uint256) => DISPATCHER(true) 
+   // totalSupply() => DISPATCHER(true)
+   // balanceOf(address) returns (uint256) => DISPATCHER(true)
 
     // WETH
     withdraw(uint256) => DISPATCHER(true)
 
 	// pool
+	/*
 	    mint(
         address recipient,
         int24 tickLower,
@@ -49,15 +70,35 @@ methods {
         uint160 sqrtPriceLimitX96,
         bytes data
     ) => DISPATCHER(true) 
+*/
+
+	// pool callback
+	uniswapV3MintCallback(
+        uint256 amount0,
+        uint256 amount1,
+        bytes data
+    ) => DISPATCHER(true)
+
+	uniswapV3SwapCallback(
+        int256 amount0,
+        int256 amount1,
+        bytes  data
+    ) => DISPATCHER(true)
 
 }
 
+ghost approximateSqrt(uint256) returns uint256;
+/* {
+  axiom forall uint256 x.
+	(x == 0 => approximateSqrt(x) ==0) &&
+	( x > 0 => approximateSqrt(x) == x/4 +1 );
+}*/
 	
 
 rule sanity(method f) filtered { f -> !f.isView  && f.selector != rebalance().selector  }  {
 	env e;
 	calldataarg args;
-	f(e,args);
+	withdraw(e,args);
 	assert(false);
 }
 
