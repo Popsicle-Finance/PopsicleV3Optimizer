@@ -1,3 +1,5 @@
+
+
 methods {
 	floor(int24 tick, int24 tickSpacing) => NONDET
 	getSqrtRatioAtTick(int24 tick) => NONDET
@@ -88,24 +90,8 @@ rule zeroCharacteristicOfWithdraw(uint256 shares, address to){
 }
 
 
-// (this broke but looks like fixed now)
-/*
-rule frontRunningOnWithdraw(uint256 shares1, address user1, uint256 shares2, address user2){
-    require (user1 != user2);
-    env e1;
-    env e2;
-    require (e1.msg.sender == user1 && e2.msg.sender == user2);
-    require e1.block.number == e2.block.number;
 
-    amount00, amount01 = withdraw(e1, shares1, user1);
-    amount10, amount11 = withdraw(e2, shares2, user2);
-    address token0;
-    address token1;
-    assert(ERC20(token0).balanceOf(user1)==ERC20(token0).balanceOf(user2) && 
-           ERC20(token1).balanceOf(user1)==ERC20(token1).balanceOf(user2) );
-}
 
-after calling rebalance, token0.balanceOf(this)==0 and token1.balanceOf(this)==0
 
 // additivity of withdraw 
 
@@ -131,5 +117,42 @@ rule additivityOfWithdraw(uint256 sharesA, uint256 sharesB, address to){
     assert((amount20 == amount00 + amount10) && (amount21 == amount01 + amount11));
 }
         
-*/
+// (this broke but looks like fixed now)
 
+rule frontRunningOnWithdraw(uint256 shares1, address user1, uint256 shares2, address user2){
+    require (user1 != user2);
+    env e1;
+    env e2;
+    require (e1.msg.sender == user1 && e2.msg.sender == user2);
+    require e1.block.number == e2.block.number;
+
+    amount00, amount01 = withdraw(e1, shares1, user1);
+    amount10, amount11 = withdraw(e2, shares2, user2);
+    assert(ERC20(this.token0()).balanceOf(user1)==token0().balanceOf(user2) && 
+           token1().balanceOf(user1)==token1().balanceOf(user2) );
+}
+
+// after calling rebalance, token0.balanceOf(this)==0 and token1.balanceOf(this)==0
+rule zeroBalancesAfterRebalance(){
+    env e;
+    rebalance();
+    assert (token0.balanceOf(this)==0 && token1.balanceOf(this)==0);
+}
+
+// total assets of user:
+rule totalAssetsOfUser(){
+    uint256 amount0;
+    uint256 amount1;
+    (amount0, amount1) = positionAmounts(pool, tickLower, tickUpper)
+        (protocol0, protocol1) = amountsForLiquidity(pool, protocolFee0, _tickLower, _tickUpper)
+        usersAmount0 = amount0 - protocolFees0
+        token0.balanceOf(user) +  usersAmount0 * balanceOf[user] / totalSupply() 
+
+        Should stay the same on deposit
+
+        Should decrease on withdraw(share, user) by fee(share)
+
+        should increase in any other function (by other users)
+
+        ** we think this breaks on _compoundFees in case when the pool.mint returns values less than the current balance 
+}
