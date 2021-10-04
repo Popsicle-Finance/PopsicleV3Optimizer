@@ -1,0 +1,10 @@
+[
+    {
+        "importFilesToOrigRelpaths": {},
+        "primary_contract": "SymbolicUniswapV3Pool",
+        "specfile": ".certora_config/0_sanity.spec",
+        "specfileOrigRelpath": "spec/sanity.spec",
+        "specfilesToImportDecls": {},
+        "type": "spec"
+    }
+]
