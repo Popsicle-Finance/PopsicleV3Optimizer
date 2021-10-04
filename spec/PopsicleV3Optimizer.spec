@@ -128,8 +128,8 @@ rule frontRunningOnWithdraw(uint256 shares1, address user1, uint256 shares2, add
 
     amount00, amount01 = withdraw(e1, shares1, user1);
     amount10, amount11 = withdraw(e2, shares2, user2);
-    assert(ERC20(this.token0()).balanceOf(user1)==token0().balanceOf(user2) && 
-           token1().balanceOf(user1)==token1().balanceOf(user2) );
+    assert(token0.balanceOf(user1)==token0.balanceOf(user2) && 
+           token1.balanceOf(user1)==token1.balanceOf(user2) );
 }
 
 // after calling rebalance, token0.balanceOf(this)==0 and token1.balanceOf(this)==0
@@ -143,8 +143,8 @@ rule zeroBalancesAfterRebalance(){
 rule totalAssetsOfUser(){
     uint256 amount0;
     uint256 amount1;
-    (amount0, amount1) = positionAmounts(pool, tickLower, tickUpper)
-        (protocol0, protocol1) = amountsForLiquidity(pool, protocolFee0, _tickLower, _tickUpper)
+    amount0, amount1 = positionAmounts(pool, tickLower, tickUpper)
+    protocol0, protocol1 = amountsForLiquidity(pool, protocolFee0, _tickLower, _tickUpper)
         usersAmount0 = amount0 - protocolFees0
         token0.balanceOf(user) +  usersAmount0 * balanceOf[user] / totalSupply() 
 
