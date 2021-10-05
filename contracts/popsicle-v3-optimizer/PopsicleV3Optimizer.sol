@@ -429,6 +429,11 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         bytes32 positionKey = PositionKey.compute(address(this), tickLower, tickUpper);
         (liquidity, feeGrowthInside0LastX128, feeGrowthInside1LastX128, tokensOwed0, tokensOwed1) = pool.positions(positionKey);
     }
+
+    /// @notice Returns current Optimizer's users amounts in pool
+    function usersAmounts() external view returns (uint256 amount0, uint256 amount1) {
+        (amount0, amount1) = pool.usersAmounts(protocolFees0, protocolFees1, protocolFee, GLOBAL_DIVISIONER, tickLower, tickUpper);
+    }
     
     /// @notice Pull in tokens from sender. Called to `msg.sender` after minting liquidity to a position from IUniswapV3Pool#mint.
     /// @dev In the implementation you must pay to the pool for the minted liquidity.
