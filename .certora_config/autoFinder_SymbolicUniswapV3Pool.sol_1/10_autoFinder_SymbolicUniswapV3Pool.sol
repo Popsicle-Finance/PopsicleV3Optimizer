@@ -1,0 +1,418 @@
+
+import "../../contracts/popsicle-v3-optimizer/interfaces/IUniswapV3Pool.sol";
+import "../../contracts/popsicle-v3-optimizer/token/IERC20.sol";
+import "../../contracts/popsicle-v3-optimizer/token/ERC20.sol";
+import "../../contracts/popsicle-v3-optimizer/libraries/LowGasSafeMath.sol";
+import "../../contracts/popsicle-v3-optimizer/libraries/TransferHelper.sol";
+/// @title Callback for IUniswapV3PoolActions#mint
+/// @notice Any contract that calls IUniswapV3PoolActions#mint must implement this interface
+interface IUniswapV3MintCallback {
+    /// @notice Called to `msg.sender` after minting liquidity to a position from IUniswapV3Pool#mint.
+    /// @dev In the implementation you must pay the pool tokens owed for the minted liquidity.
+    /// The caller of this method must be checked to be a UniswapV3Pool deployed by the canonical UniswapV3Factory.
+    /// @param amount0Owed The amount of token0 due to the pool for the minted liquidity
+    /// @param amount1Owed The amount of token1 due to the pool for the minted liquidity
+    /// @param data Any data passed through by the caller via the IUniswapV3PoolActions#mint call
+    function uniswapV3MintCallback(
+        uint256 amount0Owed,
+        uint256 amount1Owed,
+        bytes calldata data
+    ) external;
+}
+/// @title Callback for IUniswapV3PoolActions#swap
+/// @notice Any contract that calls IUniswapV3PoolActions#swap must implement this interface
+interface IUniswapV3SwapCallback {
+    /// @notice Called to `msg.sender` after executing a swap via IUniswapV3Pool#swap.
+    /// @dev In the implementation you must pay the pool tokens owed for the swap.
+    /// The caller of this method must be checked to be a UniswapV3Pool deployed by the canonical UniswapV3Factory.
+    /// amount0Delta and amount1Delta can both be 0 if no tokens were swapped.
+    /// @param amount0Delta The amount of token0 that was sent (negative) or must be received (positive) by the pool by
+    /// the end of the swap. If positive, the callback must send that amount of token0 to the pool.
+    /// @param amount1Delta The amount of token1 that was sent (negative) or must be received (positive) by the pool by
+    /// the end of the swap. If positive, the callback must send that amount of token1 to the pool.
+    /// @param data Any data passed through by the caller via the IUniswapV3PoolActions#swap call
+    function uniswapV3SwapCallback(
+        int256 amount0Delta,
+        int256 amount1Delta,
+        bytes calldata data
+    ) external;
+}
+contract SymbolicUniswapV3Pool is IUniswapV3Pool, ERC20 {
+    uint256 public liquidity;
+    uint256 public ratio = 4;
+    address public immutable override token0;
+    address public immutable override token1;
+    uint256 public owed0;
+    uint256 public owed1;
+    using LowGasSafeMath for uint256;
+    constructor(address _token0, address _token1)
+        ERC20("SymbolicUniswapV3Pool", "SymbolicUniswapV3Pool")
+    {
+        token0 = _token0;
+        token1 = _token1;
+    }
+    function balance0() private view returns (uint256) {
+        return IERC20(token0).balanceOf(address(this));
+    }
+    /// @dev Get the pool's balance of token1
+    /// @dev This function is gas optimized to avoid a redundant extcodesize check in addition to the returndatasize
+    /// check
+    function balance1() private view returns (uint256) {
+        return IERC20(token1).balanceOf(address(this));
+    }
+    /// @notice Adds liquidity for the given recipient/tickLower/tickUpper position
+    /// @dev The caller of this method receives a callback in the form of IUniswapV3MintCallback#uniswapV3MintCallback
+    /// in which they must pay any token0 or token1 owed for the liquidity. The amount of token0/token1 due depends
+    /// on tickLower, tickUpper, the amount of liquidity, and the current price.
+    /// @param recipient The address for which the liquidity will be created
+    /// @param tickLower The lower tick of the position in which to add liquidity
+    /// @param tickUpper The upper tick of the position in which to add liquidity
+    /// @param amount The amount of liquidity to mint
+    /// @param data Any data that should be passed through to the callback
+    /// @return amount0 The amount of token0 that was paid to mint the given amount of liquidity. Matches the value in the callback
+    /// @return amount1 The amount of token1 that was paid to mint the given amount of liquidity. Matches the value in the callback
+    function mint(
+        address recipient,
+        int24 tickLower,
+        int24 tickUpper,
+        uint128 amount,
+        bytes calldata data
+    ) external override returns (uint256 amount0, uint256 amount1) {
+        liquidity += amount;
+        amount0 = amount;
+        amount1 = amount * ratio;
+        uint256 token0Balance = balance0();
+        uint256 token1Balance = balance1();
+        IUniswapV3MintCallback(msg.sender).uniswapV3MintCallback(
+            amount0,
+            amount1,
+            data
+        );
+        //maybe add require that now the balance increased as expected
+        require(balance0() >= token0Balance + amount0);
+        require(balance1() >= token1Balance + amount1);
+    }
+    /// @notice Collects tokens owed to a position
+    /// @dev Does not recompute fees earned, which must be done either via mint or burn of any amount of liquidity.
+    /// Collect must be called by the position owner. To withdraw only token0 or only token1, amount0Requested or
+    /// amount1Requested may be set to zero. To withdraw all tokens owed, caller may pass any value greater than the
+    /// actual tokens owed, e.g. type(uint128).max. Tokens owed may be from accumulated swap fees or burned liquidity.
+    /// @param recipient The address which should receive the fees collected
+    /// @param tickLower The lower tick of the position for which to collect fees
+    /// @param tickUpper The upper tick of the position for which to collect fees
+    /// @param amount0Requested How much token0 should be withdrawn from the fees owed
+    /// @param amount1Requested How much token1 should be withdrawn from the fees owed
+    /// @return amount0 The amount of fees collected in token0
+    /// @return amount1 The amount of fees collected in token1
+    function collect(
+        address recipient,
+        int24 tickLower,
+        int24 tickUpper,
+        uint128 amount0Requested,
+        uint128 amount1Requested
+    ) external override returns (uint128 amount0, uint128 amount1) {
+        require(owed0 >= amount0Requested);
+        require(owed1 >= amount1Requested);
+        IERC20(token0).transfer(recipient, amount0Requested);
+        IERC20(token1).transfer(recipient, amount1Requested);
+        owed0 -= amount0Requested;
+        owed1 -= amount1Requested;
+    }
+    /// @notice Burn liquidity from the sender and account tokens owed for the liquidity to the position
+    /// @dev Can be used to trigger a recalculation of fees owed to a position by calling with an amount of 0
+    /// @dev Fees must be collected separately via a call to #collect
+    /// @param tickLower The lower tick of the position for which to burn liquidity
+    /// @param tickUpper The upper tick of the position for which to burn liquidity
+    /// @param amount How much liquidity to burn
+    /// @return amount0 The amount of token0 sent to the recipient
+    /// @return amount1 The amount of token1 sent to the recipient
+    function burn(
+        int24 tickLower,
+        int24 tickUpper,
+        uint128 amount
+    ) external override returns (uint256 amount0, uint256 amount1) {
+        require(liquidity >= amount);
+        amount0 = amount;
+        amount1 = amount * ratio;
+        liquidity -= amount;
+        owed0 += amount0;
+        owed1 += amount1;
+    }
+    /// @notice Swap token0 for token1, or token1 for token0, rate does not change so limit amout to 100, and pool creator must tarnsfer to it huge amount of token0 and token1
+    /// @dev The caller of this method receives a callback in the form of IUniswapV3SwapCallback#uniswapV3SwapCallback
+    /// @param recipient The address to receive the output of the swap
+    /// @param zeroForOne The direction of the swap, true for token0 to token1, false for token1 to token0
+    /// @param amountSpecified The amount of the swap, which implicitly configures the swap as exact input (positive), or exact output (negative)
+    /// @param sqrtPriceLimitX96 The Q64.96 sqrt price limit. If zero for one, the price cannot be less than this
+    /// value after the swap. If one for zero, the price cannot be greater than this value after the swap
+    /// @param data Any data to be passed through to the callback
+    /// @return amount0 The delta of the balance of token0 of the pool, exact when negative, minimum when positive
+    /// @return amount1 The delta of the balance of token1 of the pool, exact when negative, minimum when positive
+    function swap(
+        address recipient,
+        bool zeroForOne,
+        int256 amountSpecified,
+        uint160 sqrtPriceLimitX96,
+        bytes calldata data
+    ) external override returns (int256 amount0, int256 amount1) {
+        require(amountSpecified <= 100);
+        require(amountSpecified != 0, "AS");
+        bool exactInput = amountSpecified > 0;
+        if (!exactInput) amountSpecified = -amountSpecified;
+        int256 amountToPay = exactInput
+            ? amountSpecified
+            : (
+                zeroForOne
+                    ? amountSpecified / int256(ratio)
+                    : amountSpecified * int256(ratio)
+            );
+        int256 amountToGet = exactInput
+            ? (
+                zeroForOne
+                    ? amountSpecified / int256(ratio)
+                    : amountSpecified * int256(ratio)
+            )
+            : amountSpecified;
+        // do the transfers and collect payment
+        if (zeroForOne) {
+            TransferHelper.safeTransfer(
+                token1,
+                recipient,
+                uint256(amountToGet)
+            );
+            uint256 balance0Before = balance0();
+            IUniswapV3SwapCallback(msg.sender).uniswapV3SwapCallback(
+                amountToPay,
+                amountToGet,
+                data
+            );
+            require(
+                balance0Before.add(uint256(amountToPay)) <= balance0(),
+                "IIA"
+            );
+        } else {
+            TransferHelper.safeTransfer(
+                token0,
+                recipient,
+                uint256(amountToGet)
+            );
+            uint256 balance1Before = balance1();
+            IUniswapV3SwapCallback(msg.sender).uniswapV3SwapCallback(
+                amountToGet,
+                amountToPay,
+                data
+            );
+            require(balance1Before.add(uint256(amount1)) <= balance1(), "IIA");
+        }
+    }
+    /// @notice Returns the cumulative tick and liquidity as of each timestamp `secondsAgo` from the current block timestamp
+    /// @dev To get a time weighted average tick or liquidity-in-range, you must call this with two values, one representing
+    /// the beginning of the period and another for the end of the period. E.g., to get the last hour time-weighted average tick,
+    /// you must call it with secondsAgos = [3600, 0].
+    /// @dev The time weighted average tick represents the geometric time weighted average price of the pool, in
+    /// log base sqrt(1.0001) of token1 / token0. The TickMath library can be used to go from a tick value to a ratio.
+    /// @param secondsAgos From how long ago each cumulative tick and liquidity value should be returned
+    /// @return tickCumulatives Cumulative tick values as of each `secondsAgos` from the current block timestamp
+    /// @return secondsPerLiquidityCumulativeX128s Cumulative seconds per liquidity-in-range value as of each `secondsAgos` from the current block
+    /// timestamp
+    function observe(uint32[] calldata secondsAgos)
+        external
+        view
+        override
+        returns (
+            int56[] memory tickCumulatives,
+            uint160[] memory secondsPerLiquidityCumulativeX128s
+        )
+    {
+        tickCumulatives = new int56[](secondsAgos.length);
+        secondsPerLiquidityCumulativeX128s = new uint160[](secondsAgos.length);
+    }
+    /// @notice The pool tick spacing
+    /// @dev Ticks can only be used at multiples of this value, minimum of 1 and always positive
+    /// e.g.: a tickSpacing of 3 means ticks can be initialized every 3rd tick, i.e., ..., -6, -3, 0, 3, 6, ...
+    /// This value is an int24 to avoid casting even though it is always positive.
+    /// @return The tick spacing
+    function tickSpacing() external view override returns (int24) {
+        return 2;
+    }
+    /// @notice The 0th storage slot in the pool stores many values, and is exposed as a single method to save gas
+    /// when accessed externally.
+    /// @return sqrtPriceX96 The current price of the pool as a sqrt(token1/token0) Q64.96 value
+    /// tick The current tick of the pool, i.e. according to the last tick transition that was run.
+    /// This value may not always be equal to SqrtTickMath.getTickAtSqrtRatio(sqrtPriceX96) if the price is on a tick
+    /// boundary.
+    /// observationIndex The index of the last oracle observation that was written,
+    /// observationCardinality The current maximum number of observations stored in the pool,
+    /// observationCardinalityNext The next maximum number of observations, to be updated when the observation.
+    /// feeProtocol The protocol fee for both tokens of the pool.
+    /// Encoded as two 4 bit values, where the protocol fee of token1 is shifted 4 bits and the protocol fee of token0
+    /// is the lower 4 bits. Used as the denominator of a fraction of the swap fee, e.g. 4 means 1/4th of the swap fee.
+    /// unlocked Whether the pool is currently locked to reentrancy
+    function slot0()
+        external
+        view
+        override
+        returns (
+            uint160 sqrtPriceX96,
+            int24 tick,
+            uint16 observationIndex,
+            uint16 observationCardinality,
+            uint16 observationCardinalityNext,
+            uint8 feeProtocol,
+            bool unlocked
+        )
+    {
+        return (2, 6930, 0, 0, 0, 0, true);
+    }
+    /// @notice Returns the information about a position by the position's key
+    /// @param key The position's key is a hash of a preimage composed by the owner, tickLower and tickUpper
+    /// @return _liquidity The amount of liquidity in the position,
+    /// Returns feeGrowthInside0LastX128 fee growth of token0 inside the tick range as of the last mint/burn/poke,
+    /// Returns feeGrowthInside1LastX128 fee growth of token1 inside the tick range as of the last mint/burn/poke,
+    /// Returns tokensOwed0 the computed amount of token0 owed to the position as of the last mint/burn/poke,
+    /// Returns tokensOwed1 the computed amount of token1 owed to the position as of the last mint/burn/poke
+    function positions(bytes32 key)
+        external
+        view
+        override
+        returns (
+            uint128 _liquidity,
+            uint256 feeGrowthInside0LastX128,
+            uint256 feeGrowthInside1LastX128,
+            uint128 tokensOwed0,
+            uint128 tokensOwed1
+        )
+    {
+        return (
+            uint128(liquidity),
+            uint256(0),
+            uint256(0),
+            uint128(owed0),
+            uint128(owed1)
+        );
+    }
+	function certoraFunctionFinder78(address p0, address p1, uint256 p2) external  {
+		require(block.gaslimit == 0xbeef1b01);
+		 _approve(p0, p1, p2);
+	}
+	function certoraFunctionFinder79(address p0, address p1, uint256 p2) external  {
+		require(block.gaslimit == 0xbeef1b01);
+		 _beforeTokenTransfer(p0, p1, p2);
+	}
+	function certoraFunctionFinder80(address p0, uint256 p1) external  {
+		require(block.gaslimit == 0xbeef1b01);
+		 _burn(p0, p1);
+	}
+	function certoraFunctionFinder81(address p0, uint256 p1) external  {
+		require(block.gaslimit == 0xbeef1b01);
+		 _mint(p0, p1);
+	}
+	function certoraFunctionFinder82() external returns (address payable) {
+		require(block.gaslimit == 0xbeef1b01);
+		return _msgSender();
+	}
+	function certoraFunctionFinder83(uint8 p0) external  {
+		require(block.gaslimit == 0xbeef1b01);
+		 _setupDecimals(p0);
+	}
+	function certoraFunctionFinder84(address p0, address p1, uint256 p2) external  {
+		require(block.gaslimit == 0xbeef1b01);
+		 _transfer(p0, p1, p2);
+	}
+	function certoraFunctionFinder85(address p0, address p1) external returns (uint256) {
+		require(block.gaslimit == 0xbeef1b01);
+		return allowance(p0, p1);
+	}
+	function certoraFunctionFinder86(address p0, uint256 p1) external returns (bool) {
+		require(block.gaslimit == 0xbeef1b01);
+		return approve(p0, p1);
+	}
+	function certoraFunctionFinder87() external returns (uint256) {
+		require(block.gaslimit == 0xbeef1b01);
+		return balance0();
+	}
+	function certoraFunctionFinder88() external returns (uint256) {
+		require(block.gaslimit == 0xbeef1b01);
+		return balance1();
+	}
+	function certoraFunctionFinder89(address p0) external returns (uint256) {
+		require(block.gaslimit == 0xbeef1b01);
+		return balanceOf(p0);
+	}
+	function certoraFunctionFinder90() external returns (uint8) {
+		require(block.gaslimit == 0xbeef1b01);
+		return decimals();
+	}
+	function certoraFunctionFinder91(address p0, uint256 p1) external returns (bool) {
+		require(block.gaslimit == 0xbeef1b01);
+		return decreaseAllowance(p0, p1);
+	}
+	function certoraFunctionFinder92(address p0, uint256 p1) external returns (bool) {
+		require(block.gaslimit == 0xbeef1b01);
+		return increaseAllowance(p0, p1);
+	}
+	function certoraFunctionFinder93() external returns (uint256) {
+		require(block.gaslimit == 0xbeef1b01);
+		return totalSupply();
+	}
+	function certoraFunctionFinder94(address p0, uint256 p1) external returns (bool) {
+		require(block.gaslimit == 0xbeef1b01);
+		return transfer(p0, p1);
+	}
+	function certoraFunctionFinder95(address p0, address p1, uint256 p2) external returns (bool) {
+		require(block.gaslimit == 0xbeef1b01);
+		return transferFrom(p0, p1, p2);
+	}
+	function certoraFunctionFinder65(int256 p0, int256 p1) external returns (int256) {
+		require(block.gaslimit == 0xbeef1b01);
+		return LowGasSafeMath.add(p0, p1);
+	}
+	function certoraFunctionFinder66(uint256 p0, uint256 p1) external returns (uint256) {
+		require(block.gaslimit == 0xbeef1b01);
+		return LowGasSafeMath.add(p0, p1);
+	}
+	function certoraFunctionFinder67(uint128 p0, uint128 p1) external returns (uint128) {
+		require(block.gaslimit == 0xbeef1b01);
+		return LowGasSafeMath.add128(p0, p1);
+	}
+	function certoraFunctionFinder68(uint160 p0, uint160 p1) external returns (uint160) {
+		require(block.gaslimit == 0xbeef1b01);
+		return LowGasSafeMath.add160(p0, p1);
+	}
+	function certoraFunctionFinder69(uint256 p0, uint256 p1) external returns (uint256) {
+		require(block.gaslimit == 0xbeef1b01);
+		return LowGasSafeMath.mul(p0, p1);
+	}
+	function certoraFunctionFinder70(uint128 p0, uint128 p1) external returns (uint128) {
+		require(block.gaslimit == 0xbeef1b01);
+		return LowGasSafeMath.mul128(p0, p1);
+	}
+	function certoraFunctionFinder71(uint160 p0, uint160 p1) external returns (uint160) {
+		require(block.gaslimit == 0xbeef1b01);
+		return LowGasSafeMath.mul160(p0, p1);
+	}
+	function certoraFunctionFinder72(int256 p0, int256 p1) external returns (int256) {
+		require(block.gaslimit == 0xbeef1b01);
+		return LowGasSafeMath.sub(p0, p1);
+	}
+	function certoraFunctionFinder73(uint256 p0, uint256 p1) external returns (uint256) {
+		require(block.gaslimit == 0xbeef1b01);
+		return LowGasSafeMath.sub(p0, p1);
+	}
+	function certoraFunctionFinder74(uint128 p0, uint128 p1) external returns (uint128) {
+		require(block.gaslimit == 0xbeef1b01);
+		return LowGasSafeMath.sub128(p0, p1);
+	}
+	function certoraFunctionFinder75(uint160 p0, uint160 p1) external returns (uint160) {
+		require(block.gaslimit == 0xbeef1b01);
+		return LowGasSafeMath.sub160(p0, p1);
+	}
+	function certoraFunctionFinder76(address p0, address p1, uint256 p2) external  {
+		require(block.gaslimit == 0xbeef1b01);
+		 TransferHelper.safeTransfer(p0, p1, p2);
+	}
+	function certoraFunctionFinder77(address p0, address p1, address p2, uint256 p3) external  {
+		require(block.gaslimit == 0xbeef1b01);
+		 TransferHelper.safeTransferFrom(p0, p1, p2, p3);
+	}
+}

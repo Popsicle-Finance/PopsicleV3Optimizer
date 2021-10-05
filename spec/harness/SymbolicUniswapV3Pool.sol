@@ -1,9 +1,7 @@
-
 import "../../contracts/popsicle-v3-optimizer/interfaces/IUniswapV3Pool.sol";
 import "../../contracts/popsicle-v3-optimizer/token/IERC20.sol";
-import "../../contracts/popsicle-v3-optimizer/token/ERC20.sol";
 import "../../contracts/popsicle-v3-optimizer/libraries/LowGasSafeMath.sol";
-import "../../contracts/popsicle-v3-optimizer/libraries/TransferHelper.sol";
+
 /// @title Callback for IUniswapV3PoolActions#mint
 /// @notice Any contract that calls IUniswapV3PoolActions#mint must implement this interface
 interface IUniswapV3MintCallback {
@@ -19,6 +17,7 @@ interface IUniswapV3MintCallback {
         bytes calldata data
     ) external;
 }
+
 /// @title Callback for IUniswapV3PoolActions#swap
 /// @notice Any contract that calls IUniswapV3PoolActions#swap must implement this interface
 interface IUniswapV3SwapCallback {
@@ -37,29 +36,32 @@ interface IUniswapV3SwapCallback {
         bytes calldata data
     ) external;
 }
-contract SymbolicUniswapV3Pool is IUniswapV3Pool, ERC20 {
+
+contract SymbolicUniswapV3Pool is IUniswapV3Pool {
     uint256 public liquidity;
-    uint256 public ratio = 4;
+    uint256 public constant ratio = 4;
     address public immutable override token0;
     address public immutable override token1;
-    uint256 public owed0;
-    uint256 public owed1;
+    uint128 public owed0;
+    uint128 public owed1;
     using LowGasSafeMath for uint256;
-    constructor(address _token0, address _token1)
-        ERC20("SymbolicUniswapV3Pool", "SymbolicUniswapV3Pool")
-    {
+
+    constructor(address _token0, address _token1) {
         token0 = _token0;
         token1 = _token1;
     }
+
     function balance0() private view returns (uint256) {
         return IERC20(token0).balanceOf(address(this));
     }
+
     /// @dev Get the pool's balance of token1
     /// @dev This function is gas optimized to avoid a redundant extcodesize check in addition to the returndatasize
     /// check
     function balance1() private view returns (uint256) {
         return IERC20(token1).balanceOf(address(this));
     }
+
     /// @notice Adds liquidity for the given recipient/tickLower/tickUpper position
     /// @dev The caller of this method receives a callback in the form of IUniswapV3MintCallback#uniswapV3MintCallback
     /// in which they must pay any token0 or token1 owed for the liquidity. The amount of token0/token1 due depends
@@ -92,6 +94,7 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool, ERC20 {
         require(balance0() >= token0Balance + amount0);
         require(balance1() >= token1Balance + amount1);
     }
+
     /// @notice Collects tokens owed to a position
     /// @dev Does not recompute fees earned, which must be done either via mint or burn of any amount of liquidity.
     /// Collect must be called by the position owner. To withdraw only token0 or only token1, amount0Requested or
@@ -111,13 +114,24 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool, ERC20 {
         uint128 amount0Requested,
         uint128 amount1Requested
     ) external override returns (uint128 amount0, uint128 amount1) {
-        require(owed0 >= amount0Requested);
-        require(owed1 >= amount1Requested);
-        IERC20(token0).transfer(recipient, amount0Requested);
-        IERC20(token1).transfer(recipient, amount1Requested);
-        owed0 -= amount0Requested;
-        owed1 -= amount1Requested;
+        if (amount0Requested >= owed0) {
+            IERC20(token0).transfer(recipient, owed0);
+            amount0 = owed0;
+        } else {
+            IERC20(token0).transfer(recipient, amount0Requested);
+            owed0 -= amount0Requested;
+            amount0 = amount0Requested;
+        }
+        if (amount1Requested >= owed1) {
+            IERC20(token1).transfer(recipient, owed1);
+            amount1 = owed1;
+        } else {
+            IERC20(token1).transfer(recipient, amount1Requested);
+            owed1 -= amount1Requested;
+            amount1 = amount1Requested;
+        }
     }
+
     /// @notice Burn liquidity from the sender and account tokens owed for the liquidity to the position
     /// @dev Can be used to trigger a recalculation of fees owed to a position by calling with an amount of 0
     /// @dev Fees must be collected separately via a call to #collect
@@ -135,9 +149,10 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool, ERC20 {
         amount0 = amount;
         amount1 = amount * ratio;
         liquidity -= amount;
-        owed0 += amount0;
-        owed1 += amount1;
+        owed0 += uint128(amount0);
+        owed1 += uint128(amount1);
     }
+
     /// @notice Swap token0 for token1, or token1 for token0, rate does not change so limit amout to 100, and pool creator must tarnsfer to it huge amount of token0 and token1
     /// @dev The caller of this method receives a callback in the form of IUniswapV3SwapCallback#uniswapV3SwapCallback
     /// @param recipient The address to receive the output of the swap
@@ -155,8 +170,6 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool, ERC20 {
         uint160 sqrtPriceLimitX96,
         bytes calldata data
     ) external override returns (int256 amount0, int256 amount1) {
-        require(amountSpecified <= 100);
-        require(amountSpecified != 0, "AS");
         bool exactInput = amountSpecified > 0;
         if (!exactInput) amountSpecified = -amountSpecified;
         int256 amountToPay = exactInput
@@ -169,21 +182,17 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool, ERC20 {
         int256 amountToGet = exactInput
             ? (
                 zeroForOne
-                    ? amountSpecified / int256(ratio)
-                    : amountSpecified * int256(ratio)
+                    ? amountSpecified * int256(ratio)
+                    : amountSpecified / int256(ratio)
             )
             : amountSpecified;
         // do the transfers and collect payment
         if (zeroForOne) {
-            TransferHelper.safeTransfer(
-                token1,
-                recipient,
-                uint256(amountToGet)
-            );
+            IERC20(token1).transfer(recipient, uint256(amountToGet));
             uint256 balance0Before = balance0();
             IUniswapV3SwapCallback(msg.sender).uniswapV3SwapCallback(
                 amountToPay,
-                amountToGet,
+                -amountToGet,
                 data
             );
             require(
@@ -191,20 +200,17 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool, ERC20 {
                 "IIA"
             );
         } else {
-            TransferHelper.safeTransfer(
-                token0,
-                recipient,
-                uint256(amountToGet)
-            );
+            IERC20(token0).transfer(recipient, uint256(amountToGet));
             uint256 balance1Before = balance1();
             IUniswapV3SwapCallback(msg.sender).uniswapV3SwapCallback(
-                amountToGet,
+                -amountToGet,
                 amountToPay,
                 data
             );
-            require(balance1Before.add(uint256(amount1)) <= balance1(), "IIA");
+            require(balance1Before.add(uint256(amountToPay)) <= balance1(), "IIA");
         }
     }
+
     /// @notice Returns the cumulative tick and liquidity as of each timestamp `secondsAgo` from the current block timestamp
     /// @dev To get a time weighted average tick or liquidity-in-range, you must call this with two values, one representing
     /// the beginning of the period and another for the end of the period. E.g., to get the last hour time-weighted average tick,
@@ -227,6 +233,7 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool, ERC20 {
         tickCumulatives = new int56[](secondsAgos.length);
         secondsPerLiquidityCumulativeX128s = new uint160[](secondsAgos.length);
     }
+
     /// @notice The pool tick spacing
     /// @dev Ticks can only be used at multiples of this value, minimum of 1 and always positive
     /// e.g.: a tickSpacing of 3 means ticks can be initialized every 3rd tick, i.e., ..., -6, -3, 0, 3, 6, ...
@@ -235,6 +242,7 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool, ERC20 {
     function tickSpacing() external view override returns (int24) {
         return 2;
     }
+
     /// @notice The 0th storage slot in the pool stores many values, and is exposed as a single method to save gas
     /// when accessed externally.
     /// @return sqrtPriceX96 The current price of the pool as a sqrt(token1/token0) Q64.96 value
@@ -262,8 +270,9 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool, ERC20 {
             bool unlocked
         )
     {
-        return (2, 6930, 0, 0, 0, 0, true);
+        return (2, 13863, 0, 0, 0, 0, true);
     }
+
     /// @notice Returns the information about a position by the position's key
     /// @param key The position's key is a hash of a preimage composed by the owner, tickLower and tickUpper
     /// @return _liquidity The amount of liquidity in the position,
