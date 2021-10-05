@@ -220,5 +220,6 @@ rule totalAssetsOfUser(address user, int24 tickLower, int24 tickUpper, method f)
     should increase in any other function (by other users)
 
     ** we think this breaks on _compoundFees in case when the pool.mint returns values less than the current balance 
-    */
+    
 }
+*/
