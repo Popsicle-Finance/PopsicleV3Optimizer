@@ -115,21 +115,19 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
         uint128 amount1Requested
     ) external override returns (uint128 amount0, uint128 amount1) {
         if (amount0Requested >= owed0) {
-            IERC20(token0).transfer(recipient, owed0);
             amount0 = owed0;
         } else {
-            IERC20(token0).transfer(recipient, amount0Requested);
             owed0 -= amount0Requested;
             amount0 = amount0Requested;
         }
+        IERC20(token0).transfer(recipient, amount0);
         if (amount1Requested >= owed1) {
-            IERC20(token1).transfer(recipient, owed1);
             amount1 = owed1;
         } else {
-            IERC20(token1).transfer(recipient, amount1Requested);
             owed1 -= amount1Requested;
             amount1 = amount1Requested;
         }
+        IERC20(token1).transfer(recipient, amount1);
     }
 
     /// @notice Burn liquidity from the sender and account tokens owed for the liquidity to the position
@@ -187,7 +185,9 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
             )
             : amountSpecified;
         // do the transfers and collect payment
+        amountToGet = amountToGet * 99 /100;
         if (zeroForOne) {
+            owed1 += amountToGet / 100;
             IERC20(token1).transfer(recipient, uint256(amountToGet));
             uint256 balance0Before = balance0();
             IUniswapV3SwapCallback(msg.sender).uniswapV3SwapCallback(
@@ -200,6 +200,7 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
                 "IIA"
             );
         } else {
+            owed0 += amountToGet / 100;
             IERC20(token0).transfer(recipient, uint256(amountToGet));
             uint256 balance1Before = balance1();
             IUniswapV3SwapCallback(msg.sender).uniswapV3SwapCallback(
