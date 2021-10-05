@@ -8,30 +8,44 @@
         "cloud": null,
         "coinbaseMode": false,
         "contracts": [
+            "DummyERC20A",
+            "PopsicleV3Optimizer",
             "SymbolicUniswapV3Pool",
-            "PopsicleV3Optimizer"
+            "DummyERC20B"
         ],
         "debug": false,
         "delay_fetch_output_seconds": null,
         "disableLocalTypeChecking": false,
         "env": "master",
         "file_paths": [
-            "./spec/harness/SymbolicUniswapV3Pool.sol",
-            "./contracts/popsicle-v3-optimizer/PopsicleV3Optimizer.sol"
+            "contracts/popsicle-v3-optimizer/PopsicleV3Optimizer.sol",
+            "spec/harness/SymbolicUniswapV3Pool.sol",
+            "spec/harness/DummyERC20B.sol",
+            "spec/harness/DummyERC20A.sol"
         ],
         "file_to_contract": {
-            "./contracts/popsicle-v3-optimizer/PopsicleV3Optimizer.sol": "PopsicleV3Optimizer",
-            "./spec/harness/SymbolicUniswapV3Pool.sol": "SymbolicUniswapV3Pool"
+            "contracts/popsicle-v3-optimizer/PopsicleV3Optimizer.sol": "PopsicleV3Optimizer",
+            "spec/harness/DummyERC20A.sol": "DummyERC20A",
+            "spec/harness/DummyERC20B.sol": "DummyERC20B",
+            "spec/harness/SymbolicUniswapV3Pool.sol": "SymbolicUniswapV3Pool"
         },
         "files": [
-            "./contracts/popsicle-v3-optimizer/PopsicleV3Optimizer.sol",
-            "./spec/harness/SymbolicUniswapV3Pool.sol"
+            "contracts/popsicle-v3-optimizer/PopsicleV3Optimizer.sol:PopsicleV3Optimizer",
+            "spec/harness/DummyERC20A.sol",
+            "spec/harness/DummyERC20B.sol",
+            "spec/harness/SymbolicUniswapV3Pool.sol"
         ],
         "internal_funcs": null,
         "jar": null,
         "java_args": null,
-        "key": "f71bb1a632443b9efb816000afc7d5b387922c36",
-        "link": null,
+        "key": "225024c2e54bf058fd3b877ada28d2d9e4f40db8",
+        "link": [
+            "PopsicleV3Optimizer:pool=SymbolicUniswapV3Pool",
+            "PopsicleV3Optimizer:token0=DummyERC20A",
+            "PopsicleV3Optimizer:token1=DummyERC20B",
+            "SymbolicUniswapV3Pool:token0=DummyERC20A",
+            "SymbolicUniswapV3Pool:token1=DummyERC20B"
+        ],
         "local": false,
         "log_query_frequency_seconds": null,
         "loop_iter": null,
@@ -40,87 +54,101 @@
         "max_poll_minutes": null,
         "method": null,
         "mode": "Mode.VERIFY",
-        "msg": "PopsicleV3Optimizer : sanity - large machines",
+        "msg": "PopsicleV3Optimizer : additivityOfWithdraw - ",
         "no_compare": false,
         "optimistic_loop": false,
         "packages": [
-            "@typechain/ethers-v5=/Users/gadirechlis/development/customers/PopsicleV3Optimizer/node_modules/@typechain/ethers-v5",
-            "@typechain/hardhat=/Users/gadirechlis/development/customers/PopsicleV3Optimizer/node_modules/@typechain/hardhat",
-            "@uniswap/v3-periphery=/Users/gadirechlis/development/customers/PopsicleV3Optimizer/node_modules/@uniswap/v3-periphery",
-            "ts-generator=/Users/gadirechlis/development/customers/PopsicleV3Optimizer/node_modules/ts-generator",
-            "typechain=/Users/gadirechlis/development/customers/PopsicleV3Optimizer/node_modules/typechain"
+            "@typechain/ethers-v5=C:/dev/customergit/PopsicleV3Optimizer/node_modules/@typechain/ethers-v5",
+            "@typechain/hardhat=C:/dev/customergit/PopsicleV3Optimizer/node_modules/@typechain/hardhat",
+            "@uniswap/v3-periphery=C:/dev/customergit/PopsicleV3Optimizer/node_modules/@uniswap/v3-periphery",
+            "ts-generator=C:/dev/customergit/PopsicleV3Optimizer/node_modules/ts-generator",
+            "typechain=C:/dev/customergit/PopsicleV3Optimizer/node_modules/typechain"
         ],
-        "packages_path": "/Users/gadirechlis/development/customers/PopsicleV3Optimizer/node_modules",
-        "path": "/Users/gadirechlis/development/customers/PopsicleV3Optimizer/contracts",
+        "packages_path": "C:/dev/customergit/PopsicleV3Optimizer/node_modules",
+        "path": "C:\\dev\\customergit\\PopsicleV3Optimizer\\contracts",
         "process": "emv",
         "queue_wait_minutes": null,
-        "rule": "sanity",
+        "rule": "additivityOfWithdraw",
         "rule_sanity": false,
         "settings": [
-            "-ciMode=true",
-            "-depth=1",
+            "-copyLoopUnroll=4",
+            "-enableEqualitySaturation=false",
             "-enableStorageAnalysis=false",
-            "-rule=sanity",
-            "-t=10"
+            "-rule=additivityOfWithdraw"
         ],
-        "short_output": true,
-        "smt_timeout": "10",
-        "solc": "/Users/gadirechlis/development/CVT-Executables-Mac/solc7.6",
+        "short_output": false,
+        "smt_timeout": null,
+        "solc": "C:/Program Files/Solidity/solc7.6.exe",
         "solc_args": null,
         "solc_map": null,
         "spec_files": [
-            "spec/sanity.spec"
+            "spec/PopsicleV3Optimizer.spec"
         ],
-        "staging": "shelly/oomFirstAid",
+        "staging": "shelly/fixModPopsicle",
         "struct_link": null,
         "tool_output": null,
         "typecheck_only": false,
         "verify": [
-            "SymbolicUniswapV3Pool:spec/sanity.spec"
+            "PopsicleV3Optimizer:spec/PopsicleV3Optimizer.spec"
         ]
     },
     "branch": "certora",
     "conf": {
         "files": [
-            "./contracts/popsicle-v3-optimizer/PopsicleV3Optimizer.sol",
-            "./spec/harness/SymbolicUniswapV3Pool.sol"
+            "contracts/popsicle-v3-optimizer/PopsicleV3Optimizer.sol:PopsicleV3Optimizer",
+            "spec/harness/DummyERC20A.sol",
+            "spec/harness/DummyERC20B.sol",
+            "spec/harness/SymbolicUniswapV3Pool.sol"
         ],
-        "msg": "PopsicleV3Optimizer : sanity - large machines",
+        "link": [
+            "PopsicleV3Optimizer:pool=SymbolicUniswapV3Pool",
+            "PopsicleV3Optimizer:token0=DummyERC20A",
+            "PopsicleV3Optimizer:token1=DummyERC20B",
+            "SymbolicUniswapV3Pool:token0=DummyERC20A",
+            "SymbolicUniswapV3Pool:token1=DummyERC20B"
+        ],
+        "msg": "PopsicleV3Optimizer : additivityOfWithdraw - ",
         "process": "emv",
-        "rule": "sanity",
+        "rule": "additivityOfWithdraw",
         "settings": [
-            "-depth=1",
-            "-enableStorageAnalysis=false",
-            "-t=10"
+            "-copyLoopUnroll=4",
+            "-enableEqualitySaturation=false",
+            "-enableStorageAnalysis=false"
         ],
-        "short_output": true,
         "solc": "solc7.6",
-        "staging": "shelly/oomFirstAid",
+        "staging": "shelly/fixModPopsicle",
         "verify": [
-            "SymbolicUniswapV3Pool:spec/sanity.spec"
+            "PopsicleV3Optimizer:spec/PopsicleV3Optimizer.spec"
         ]
     },
     "cwd_relative": ".",
-    "dirty": true,
-    "origin": "https://github.com/Popsicle-Finance/PopsicleV3Optimizer.git",
+    "dirty": false,
+    "origin": "git@github.com:Popsicle-Finance/PopsicleV3Optimizer.git",
     "raw_args": [
-        "/Users/gadirechlis/.pyenv/versions/3.9.4/bin/certoraRun",
-        "./contracts/popsicle-v3-optimizer/PopsicleV3Optimizer.sol",
-        "./spec/harness/SymbolicUniswapV3Pool.sol",
+        "C:\\Users\\sitva\\AppData\\Local\\Programs\\Python\\Python39\\Scripts\\certoraRun",
+        "contracts/popsicle-v3-optimizer/PopsicleV3Optimizer.sol:PopsicleV3Optimizer",
+        "spec/harness/DummyERC20A.sol",
+        "spec/harness/DummyERC20B.sol",
+        "spec/harness/SymbolicUniswapV3Pool.sol",
+        "--link",
+        "PopsicleV3Optimizer:token0=DummyERC20A",
+        "PopsicleV3Optimizer:token1=DummyERC20B",
+        "PopsicleV3Optimizer:pool=SymbolicUniswapV3Pool",
+        "SymbolicUniswapV3Pool:token0=DummyERC20A",
+        "SymbolicUniswapV3Pool:token1=DummyERC20B",
         "--verify",
-        "SymbolicUniswapV3Pool:spec/sanity.spec",
+        "PopsicleV3Optimizer:spec/PopsicleV3Optimizer.spec",
         "--solc",
         "solc7.6",
         "--staging",
-        "shelly/oomFirstAid",
+        "shelly/fixModPopsicle",
         "--rule",
-        "sanity",
+        "additivityOfWithdraw",
         "--settings",
-        "-t=10,-depth=1,-enableStorageAnalysis=false",
-        "--short_output",
+        "-enableStorageAnalysis=false,-enableEqualitySaturation=false,-copyLoopUnroll=4",
         "--msg",
-        "PopsicleV3Optimizer : sanity - large machines"
+        "PopsicleV3Optimizer : additivityOfWithdraw - "
     ],
-    "revision": "a4e4292b9218e96c6e7cc97b4114773986c5bb0b",
-    "timestamp": "1633017088.536905"
+    "revision": "7c632065fe96a4834b83d3b98c6248cc1b03b83d",
+    "timestamp": "1633421426.042579"
 }

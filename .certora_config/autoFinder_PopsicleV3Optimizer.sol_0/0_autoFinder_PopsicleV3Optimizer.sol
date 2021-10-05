@@ -469,6 +469,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     /// @param payer The entity that must pay
     /// @param recipient The entity that will receive payment
     /// @param value The amount to pay
+    /*
     function pay(
         address token,
         address payer,
@@ -485,6 +486,30 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         } else {
             // pull payment
             TransferHelper.safeTransferFrom(token, payer, recipient, value);
+        }
+    } */
+
+    function pay(
+        address token,
+        address payer,
+        address recipient,
+        uint256 value
+    ) internal {
+        if (token == weth && address(this).balance >= value) {
+            // pay with WETH9
+            IWETH9(weth).deposit{value: value}(); // wrap only what is needed to pay
+            IWETH9(weth).transfer(recipient, value);
+        } else if (payer == address(this)) {
+            // pay with tokens already in the contract (for the exact input multihop case)
+            //TransferHelper.safeTransfer(token, recipient, value);
+            //certora change
+            IERC20(token).transfer(recipient, value);
+
+        } else {
+            // pull payment
+            //TransferHelper.safeTransferFrom(token, payer, recipient, value);
+            //certora change
+            IERC20(token).transferFrom(payer, recipient, value);
         }
     }
     
@@ -609,111 +634,111 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     function unpause() external onlyGovernance whenPaused {
         _paused = false;
     }
-	function certoraFunctionFinder38(address p0, address p1, uint256 p2) external  {
+	function certoraFunctionFinder36(address p0, address p1, uint256 p2) external  {
 		require(block.gaslimit == 0xbeef1b01);
 		 _approve(p0, p1, p2);
 	}
-	function certoraFunctionFinder39() external returns (uint256) {
+	function certoraFunctionFinder37() external returns (uint256) {
 		require(block.gaslimit == 0xbeef1b01);
 		return _balance0();
 	}
-	function certoraFunctionFinder40() external returns (uint256) {
+	function certoraFunctionFinder38() external returns (uint256) {
 		require(block.gaslimit == 0xbeef1b01);
 		return _balance1();
 	}
-	function certoraFunctionFinder41(address p0, address p1, uint256 p2) external  {
+	function certoraFunctionFinder39(address p0, address p1, uint256 p2) external  {
 		require(block.gaslimit == 0xbeef1b01);
 		 _beforeTokenTransfer(p0, p1, p2);
 	}
-	function certoraFunctionFinder42(address p0, uint256 p1) external  {
+	function certoraFunctionFinder40(address p0, uint256 p1) external  {
 		require(block.gaslimit == 0xbeef1b01);
 		 _burn(p0, p1);
 	}
-	function certoraFunctionFinder43(uint256 p0, uint256 p1) external returns (uint256) {
+	function certoraFunctionFinder41(uint256 p0, uint256 p1) external returns (uint256) {
 		require(block.gaslimit == 0xbeef1b01);
 		return _calcShare(p0, p1);
 	}
-	function certoraFunctionFinder44() external returns (uint256,uint256) {
+	function certoraFunctionFinder42() external returns (uint256,uint256) {
 		require(block.gaslimit == 0xbeef1b01);
 		return _compoundFees();
 	}
-	function certoraFunctionFinder45() external returns (bytes32) {
+	function certoraFunctionFinder43() external returns (bytes32) {
 		require(block.gaslimit == 0xbeef1b01);
 		return _domainSeparatorV4();
 	}
-	function certoraFunctionFinder46() external  {
+	function certoraFunctionFinder44() external  {
 		require(block.gaslimit == 0xbeef1b01);
 		 _earnFees();
 	}
-	function certoraFunctionFinder47(bytes32 p0) external returns (bytes32) {
+	function certoraFunctionFinder45(bytes32 p0) external returns (bytes32) {
 		require(block.gaslimit == 0xbeef1b01);
 		return _hashTypedDataV4(p0);
 	}
-	function certoraFunctionFinder48(address p0, uint256 p1) external  {
+	function certoraFunctionFinder46(address p0, uint256 p1) external  {
 		require(block.gaslimit == 0xbeef1b01);
 		 _mint(p0, p1);
 	}
-	function certoraFunctionFinder49() external returns (address payable) {
+	function certoraFunctionFinder47() external returns (address payable) {
 		require(block.gaslimit == 0xbeef1b01);
 		return _msgSender();
 	}
-	function certoraFunctionFinder50(uint8 p0) external  {
+	function certoraFunctionFinder48(uint8 p0) external  {
 		require(block.gaslimit == 0xbeef1b01);
 		 _setupDecimals(p0);
 	}
-	function certoraFunctionFinder51(address p0, address p1, uint256 p2) external  {
+	function certoraFunctionFinder49(address p0, address p1, uint256 p2) external  {
 		require(block.gaslimit == 0xbeef1b01);
 		 _transfer(p0, p1, p2);
 	}
-	function certoraFunctionFinder52(address p0) external returns (uint256) {
+	function certoraFunctionFinder50(address p0) external returns (uint256) {
 		require(block.gaslimit == 0xbeef1b01);
 		return _useNonce(p0);
 	}
-	function certoraFunctionFinder53(address p0, address p1) external returns (uint256) {
+	function certoraFunctionFinder51(address p0, address p1) external returns (uint256) {
 		require(block.gaslimit == 0xbeef1b01);
 		return allowance(p0, p1);
 	}
-	function certoraFunctionFinder54(address p0, uint256 p1) external returns (bool) {
+	function certoraFunctionFinder52(address p0, uint256 p1) external returns (bool) {
 		require(block.gaslimit == 0xbeef1b01);
 		return approve(p0, p1);
 	}
-	function certoraFunctionFinder55(address p0) external returns (uint256) {
+	function certoraFunctionFinder53(address p0) external returns (uint256) {
 		require(block.gaslimit == 0xbeef1b01);
 		return balanceOf(p0);
 	}
-	function certoraFunctionFinder56() external returns (uint8) {
+	function certoraFunctionFinder54() external returns (uint8) {
 		require(block.gaslimit == 0xbeef1b01);
 		return decimals();
 	}
-	function certoraFunctionFinder57(address p0, uint256 p1) external returns (bool) {
+	function certoraFunctionFinder55(address p0, uint256 p1) external returns (bool) {
 		require(block.gaslimit == 0xbeef1b01);
 		return decreaseAllowance(p0, p1);
 	}
-	function certoraFunctionFinder58(address p0, uint256 p1) external returns (bool) {
+	function certoraFunctionFinder56(address p0, uint256 p1) external returns (bool) {
 		require(block.gaslimit == 0xbeef1b01);
 		return increaseAllowance(p0, p1);
 	}
-	function certoraFunctionFinder59(address p0) external returns (uint256) {
+	function certoraFunctionFinder57(address p0) external returns (uint256) {
 		require(block.gaslimit == 0xbeef1b01);
 		return nonces(p0);
 	}
-	function certoraFunctionFinder60(address p0, address p1, address p2, uint256 p3) external  {
+	function certoraFunctionFinder58(address p0, address p1, address p2, uint256 p3) external  {
 		require(block.gaslimit == 0xbeef1b01);
 		 pay(p0, p1, p2, p3);
 	}
-	function certoraFunctionFinder61(address p0, address p1, uint256 p2, uint256 p3, uint8 p4, bytes32 p5, bytes32 p6) external  {
+	function certoraFunctionFinder59(address p0, address p1, uint256 p2, uint256 p3, uint8 p4, bytes32 p5, bytes32 p6) external  {
 		require(block.gaslimit == 0xbeef1b01);
 		 permit(p0, p1, p2, p3, p4, p5, p6);
 	}
-	function certoraFunctionFinder62() external returns (uint256) {
+	function certoraFunctionFinder60() external returns (uint256) {
 		require(block.gaslimit == 0xbeef1b01);
 		return totalSupply();
 	}
-	function certoraFunctionFinder63(address p0, uint256 p1) external returns (bool) {
+	function certoraFunctionFinder61(address p0, uint256 p1) external returns (bool) {
 		require(block.gaslimit == 0xbeef1b01);
 		return transfer(p0, p1);
 	}
-	function certoraFunctionFinder64(address p0, address p1, uint256 p2) external returns (bool) {
+	function certoraFunctionFinder62(address p0, address p1, uint256 p2) external returns (bool) {
 		require(block.gaslimit == 0xbeef1b01);
 		return transferFrom(p0, p1, p2);
 	}
@@ -853,27 +878,19 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
 		require(block.gaslimit == 0xbeef1b01);
 		return TickMath.getTickAtSqrtRatio(p0);
 	}
-	function certoraFunctionFinder34(address p0, address p1, uint256 p2) external  {
-		require(block.gaslimit == 0xbeef1b01);
-		 TransferHelper.safeTransfer(p0, p1, p2);
-	}
-	function certoraFunctionFinder35(address p0, address p1, address p2, uint256 p3) external  {
-		require(block.gaslimit == 0xbeef1b01);
-		 TransferHelper.safeTransferFrom(p0, p1, p2, p3);
-	}
-	function certoraFunctionFinder36(uint256 p0, uint256 p1) external returns (uint256) {
+	function certoraFunctionFinder34(uint256 p0, uint256 p1) external returns (uint256) {
 		require(block.gaslimit == 0xbeef1b01);
 		return UnsafeMath.divRoundingUp(p0, p1);
 	}
-	function certoraFunctionFinder37(uint256 p0, uint256 p1) external returns (uint256) {
+	function certoraFunctionFinder35(uint256 p0, uint256 p1) external returns (uint256) {
 		require(block.gaslimit == 0xbeef1b01);
 		return UnsafeMath.unsafeDiv(p0, p1);
 	}
 }
 
-import {Counters} from '/Users/gadirechlis/development/customers/PopsicleV3Optimizer/contracts/popsicle-v3-optimizer/libraries/Counters.sol';
-import {ECDSA} from '/Users/gadirechlis/development/customers/PopsicleV3Optimizer/contracts/popsicle-v3-optimizer/libraries/ECDSA.sol';
-import {FullMath} from '/Users/gadirechlis/development/customers/PopsicleV3Optimizer/contracts/popsicle-v3-optimizer/libraries/FullMath.sol';
-import {LiquidityAmounts} from '/Users/gadirechlis/development/customers/PopsicleV3Optimizer/contracts/popsicle-v3-optimizer/libraries/LiquidityAmounts.sol';
-import {SqrtPriceMath} from '/Users/gadirechlis/development/customers/PopsicleV3Optimizer/contracts/popsicle-v3-optimizer/libraries/SqrtPriceMath.sol';
-import {TickMath} from '/Users/gadirechlis/development/customers/PopsicleV3Optimizer/contracts/popsicle-v3-optimizer/libraries/TickMath.sol';
+import {Counters} from 'C:/dev/customergit/PopsicleV3Optimizer/contracts/popsicle-v3-optimizer/libraries/Counters.sol';
+import {ECDSA} from 'C:/dev/customergit/PopsicleV3Optimizer/contracts/popsicle-v3-optimizer/libraries/ECDSA.sol';
+import {FullMath} from 'C:/dev/customergit/PopsicleV3Optimizer/contracts/popsicle-v3-optimizer/libraries/FullMath.sol';
+import {LiquidityAmounts} from 'C:/dev/customergit/PopsicleV3Optimizer/contracts/popsicle-v3-optimizer/libraries/LiquidityAmounts.sol';
+import {SqrtPriceMath} from 'C:/dev/customergit/PopsicleV3Optimizer/contracts/popsicle-v3-optimizer/libraries/SqrtPriceMath.sol';
+import {TickMath} from 'C:/dev/customergit/PopsicleV3Optimizer/contracts/popsicle-v3-optimizer/libraries/TickMath.sol';
