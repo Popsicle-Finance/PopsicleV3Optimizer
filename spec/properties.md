@@ -24,10 +24,11 @@
         token1.balanceOf[msg.sender]
 
   ## Zero characteristic of withdraw:
+  // if tick is not out of range then
         (amount0,amount1) =  withdraw(share, to) =>
             (amount0 == 0 && amount1 == 0) ||
             (amount0 != 0 && amount1 != 0)
-        does not hold when out-of-range
+        
 
     
   ## front running on withdraw (this broke but looks like fixed now)
@@ -36,6 +37,7 @@
                 token0.balanceOf[user1] ==  token0.balanceOf[user2]
                 token1.balanceOf[user1] ==  token1.balanceOf[user2] 
  
+ === until here
   ## solvency of the system  
          
         (amount0, amount1) = positionAmounts(pool, tickLower, tickUpper)
