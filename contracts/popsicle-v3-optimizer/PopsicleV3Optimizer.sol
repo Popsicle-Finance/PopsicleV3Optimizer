@@ -469,6 +469,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     /// @param payer The entity that must pay
     /// @param recipient The entity that will receive payment
     /// @param value The amount to pay
+    /*
     function pay(
         address token,
         address payer,
@@ -485,6 +486,30 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         } else {
             // pull payment
             TransferHelper.safeTransferFrom(token, payer, recipient, value);
+        }
+    } */
+
+    function pay(
+        address token,
+        address payer,
+        address recipient,
+        uint256 value
+    ) internal {
+        if (token == weth && address(this).balance >= value) {
+            // pay with WETH9
+            IWETH9(weth).deposit{value: value}(); // wrap only what is needed to pay
+            IWETH9(weth).transfer(recipient, value);
+        } else if (payer == address(this)) {
+            // pay with tokens already in the contract (for the exact input multihop case)
+            //TransferHelper.safeTransfer(token, recipient, value);
+            //certora change
+            IERC20(token).transfer(recipient, value);
+
+        } else {
+            // pull payment
+            //TransferHelper.safeTransferFrom(token, payer, recipient, value);
+            //certora change
+            IERC20(token).transferFrom(payer, recipient, value);
         }
     }
     

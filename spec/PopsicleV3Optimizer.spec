@@ -1,5 +1,9 @@
 
 
+using DummyERC20A as token0
+using DummyERC20B as token1
+using IUniswapV3Pool as pool
+
 methods {
 	//math functions 
 	floor(int24 tick, int24 tickSpacing) => NONDET
@@ -39,7 +43,7 @@ methods {
    // balanceOf(address) returns (uint256) => DISPATCHER(true)
 
     // WETH
-    withdraw(uint256) => DISPATCHER(true)
+    withdraw(uint256, address) => DISPATCHER(true)
 
 	// pool
 	/*
@@ -112,7 +116,7 @@ rule sanityForView(method f) filtered { f -> f.isView }  {
 	assert(false);
 }
 
-
+/*
 rule reentrency(method f) filtered { f -> !f.isView } {
 	env e;
 	calldataarg args;
@@ -120,6 +124,7 @@ rule reentrency(method f) filtered { f -> !f.isView } {
 	f@withrevert(e,args);
 	assert lastReverted; 
 }
+*/
 
 rule zeroCharacteristicOfWithdraw(uint256 shares, address to){
     env e;
@@ -159,7 +164,9 @@ rule additivityOfWithdraw(uint256 sharesA, uint256 sharesB, address to){
 }
         
 // (this broke but looks like fixed now)
-
+// withdrawing the same amount at the same block yields the same token amounts 
+// why do we need to withdraw the same amounts?
+// We only need the user2 to succeed withdrawing.            
 rule frontRunningOnWithdraw(uint256 shares1, address user1, uint256 shares2, address user2){
     require (user1 != user2);
     env e1;
@@ -167,33 +174,51 @@ rule frontRunningOnWithdraw(uint256 shares1, address user1, uint256 shares2, add
     require (e1.msg.sender == user1 && e2.msg.sender == user2);
     require e1.block.number == e2.block.number;
 
+    uint256 amount00;
+    uint256 amount01;
+    uint256 amount10;
+    uint256 amount11;
+
     amount00, amount01 = withdraw(e1, shares1, user1);
     amount10, amount11 = withdraw(e2, shares2, user2);
-    assert(token0.balanceOf(user1)==token0.balanceOf(user2) && 
-           token1.balanceOf(user1)==token1.balanceOf(user2) );
+    //assert(token0.balanceOf(user1)==token0.balanceOf(user2) && 
+    //       token1.balanceOf(user1)==token1.balanceOf(user2) );
+    assert(!lastReverted);
 }
 
 // after calling rebalance, token0.balanceOf(this)==0 and token1.balanceOf(this)==0
 rule zeroBalancesAfterRebalance(){
     env e;
-    rebalance();
-    assert (token0.balanceOf(this)==0 && token1.balanceOf(this)==0);
+    rebalance(e);
+    assert (token0.balanceOf(e, currentContract)==0 && 
+                             token1.balanceOf(e, currentContract)==0);
 }
 
+
 // total assets of user:
-rule totalAssetsOfUser(){
+/*
+rule totalAssetsOfUser(address user, int24 tickLower, int24 tickUpper, method f){
+    env e;
     uint256 amount0;
     uint256 amount1;
-    amount0, amount1 = positionAmounts(pool, tickLower, tickUpper)
-    protocol0, protocol1 = amountsForLiquidity(pool, protocolFee0, _tickLower, _tickUpper)
-        usersAmount0 = amount0 - protocolFees0
-        token0.balanceOf(user) +  usersAmount0 * balanceOf[user] / totalSupply() 
+    amount0, amount1 = positionAmounts(pool, tickLower, tickUpper);
 
-        Should stay the same on deposit
+    uint256 protocol0;
+    uint256 protocol1;
+    // protocol0, protocol1 = amountsForLiquidity(pool, protocolFee0, tickLower, tickUpper);
+    uint256 usersAmount0 = amount0 - currentContract.protocolFees0;
+    uint256 totalAssetsBefore0 = token0.balanceOf(user) +  usersAmount0 * token0.balanceOf[user] / totalSupply() 
+    calldataarg args;
+	f(e,args);
 
-        Should decrease on withdraw(share, user) by fee(share)
 
-        should increase in any other function (by other users)
+    
+    Should stay the same on deposit
 
-        ** we think this breaks on _compoundFees in case when the pool.mint returns values less than the current balance 
+    Should decrease on withdraw(share, user) by fee(share)
+
+    should increase in any other function (by other users)
+
+    ** we think this breaks on _compoundFees in case when the pool.mint returns values less than the current balance 
+    */
 }
