@@ -190,7 +190,7 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
         // do the transfers and collect payment
         amountToGet = amountToGet * 99 /100;
         if (zeroForOne) {
-            owed1 += amountToGet / 100;
+            owed1 += uint128(uint256(amountToGet) / 100);
             IERC20(token1).transfer(recipient, uint256(amountToGet));
             uint256 balance0Before = balance0();
             IUniswapV3SwapCallback(msg.sender).uniswapV3SwapCallback(
@@ -203,7 +203,7 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
                 "IIA"
             );
         } else {
-            owed0 += amountToGet / 100;
+            owed0 += uint128(uint256(amountToGet) / 100);
             IERC20(token0).transfer(recipient, uint256(amountToGet));
             uint256 balance1Before = balance1();
             IUniswapV3SwapCallback(msg.sender).uniswapV3SwapCallback(
