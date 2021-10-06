@@ -2,7 +2,8 @@
 
 using DummyERC20A as token0
 using DummyERC20B as token1
-using IUniswapV3Pool as pool
+using SymbolicUniswapV3Pool as pool
+using PoolVariables as PoolVariables
 
 methods {
 	//math functions
@@ -194,6 +195,21 @@ rule zeroBalancesAfterRebalance(){
                              token1.balanceOf(e, currentContract)==0);
 }
 
+/*
+function userAmounts(uint256 amount0) returns uint256
+{
+    uint256 userAmount0;
+    uint256 userAmount1;
+    usersAmount0 = amount0 - protocolFees0();
+    usersAmount1 = amount1 - protocolFees1();
+    uint256 amountInUniswapPerShare0;
+    uint256 amountInUniswapPerShare1;
+    amountInUniswapPerShare0 = usersAmount0 / totalSupply();
+    amountInUniswapPerShare1 = usersAmount1 / totalSupply();
+    return amountInUniswapPerShare0;
+}
+*/
+
 
 // total assets of user:
 /*
@@ -223,3 +239,37 @@ rule totalAssetsOfUser(address user, int24 tickLower, int24 tickUpper, method f)
     
 }
 */
+
+
+// if fees collected amountInUniswapPerShare can only increase
+ rule solvencyOfTheSystem(int24 tickLower, int24 tickUpper){
+   uint256 amount0;
+    uint256 amount1;
+    amount0, amount1 = PoolVariables.positionAmounts(pool, tickLower, tickUpper); 
+    uint256 userAmount0 = amount0 - protocolFees0();
+    uint256 userAmount1 = amount1 - protocolFees1();
+    uint256 amountInUniswapPerShare0 = usersAmount0 / totalSupply();
+    uint256 amountInUniswapPerShare1 = usersAmount1 / totalSupply();
+    amount0, amount1 = collectProtocolFees(amount0Before, amount1Before);
+    uint256 userAmount0After = amount0 - protocolFees0();
+    uint256 userAmount1After = amount1 - protocolFees1();
+    uint256 amountInUniswapPerShare0After = usersAmount0After / totalSupply();
+    uint256 amountInUniswapPerShare1After = usersAmount1After / totalSupply();
+    assert(amountInUniswapPerShare0 <= amountInUniswapPerShare0After &&
+           amountInUniswapPerShare1 <= amountInUniswapPerShare1After);
+} 
+
+
+
+// Calculated by liquidty
+// amountInUniswapPerShare should stay the same on withdraw, deposit, ERC20 functions 
+rule fixedSolvencyOfTheSystem(method f){
+    env e;
+	calldataarg args;
+    // require(f.select == withdraw || f.select == deposit || f.select == transfer || f.select == transferFrom)
+    
+    uint128 amountInUniswapPerShareBefore = amountInUniswapPerShare();
+    f(e, args);
+    uint128  amountInUniswapPerShareAfter = amountInUniswapPerShare();
+    assert (amountInUniswapPerShareBefore == amountInUniswapPerShareAfter);
+}

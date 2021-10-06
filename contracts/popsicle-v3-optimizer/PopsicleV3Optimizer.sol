@@ -634,4 +634,13 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     function unpause() external onlyGovernance whenPaused {
         _paused = false;
     }
+
+    // certora helpers
+    function amountInUniswapPerShare() public  returns (uint128){
+        uint128 protocolLiquidity = pool.liquidityForAmounts(protocolFees0, protocolFees1, tickLower, tickUpper);
+        uint128 liquidity = pool.positionLiquidity(tickLower, tickUpper);
+        uint128 usersLiquidity = liquidity - protocolLiquidity;
+        uint128 amountInUniswapPerShare = usersLiquidity / (uint128 totalSupply());
+        return amountInUniswapPerShare;
+    }
 }
