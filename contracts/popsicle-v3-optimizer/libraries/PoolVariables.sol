@@ -119,14 +119,12 @@ library PoolVariables {
 
     /// @dev Rounds tick down towards negative infinity so that it's a multiple
     /// of `tickSpacing`.
-    function floor(int24 tick, int24 tickSpacing)
-        internal
-        pure
-        returns (int24)
-    {
-        int24 compressed = tick / tickSpacing;
+    function floor(int24 tick, int24 tickSpacing) internal pure returns (int24) {
+    /*    int24 compressed = tick / tickSpacing;
         if (tick < 0 && tick % tickSpacing != 0) compressed--;
         return compressed * tickSpacing;
+        */
+        return 0;
     }
 
     /// @dev Gets ticks with proportion equivalent to desired amount
@@ -225,17 +223,14 @@ library PoolVariables {
     }
 
     /// @dev Fetches time-weighted average price in ticks from Uniswap pool for specified duration
-    function getTwap(IUniswapV3Pool pool, uint32 twapDuration)
-        internal
-        view
-        returns (int24)
-    {
-        uint32 _twapDuration = twapDuration;
+    function getTwap(IUniswapV3Pool pool, uint32 twapDuration) internal view returns (int24) {
+      /*  uint32 _twapDuration = twapDuration;
         uint32[] memory secondsAgo = new uint32[](2);
         secondsAgo[0] = _twapDuration;
         secondsAgo[1] = 0;
 
         (int56[] memory tickCumulatives, ) = pool.observe(secondsAgo);
-        return int24((tickCumulatives[1] - tickCumulatives[0]) / _twapDuration);
+        return int24((tickCumulatives[1] - tickCumulatives[0]) / _twapDuration);*/
+        return 0;
     }
 }
