@@ -8,3 +8,6 @@ artifacts/
 node_modules/
 typechain/
 cache/
+.certora_config/
+.last_confs/
+

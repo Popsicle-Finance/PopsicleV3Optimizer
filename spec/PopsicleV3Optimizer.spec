@@ -5,7 +5,7 @@ using DummyERC20B as token1
 using IUniswapV3Pool as pool
 
 methods {
-	//math functions 
+	//math functions
 	floor(int24 tick, int24 tickSpacing) => NONDET
 	getSqrtRatioAtTick(int24 tick) => NONDET
 	getTickAtSqrtRatio(uint160 sqrtPriceX96) => NONDET
