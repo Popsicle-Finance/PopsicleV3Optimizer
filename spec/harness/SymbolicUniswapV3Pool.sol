@@ -274,7 +274,7 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
             bool unlocked
         )
     {
-        return (2, 13863, 0, 0, 0, 0, true);
+        return (2<<96, 13863, 0, 0, 0, 0, true);
     }
 
     /// @notice Returns the information about a position by the position's key
