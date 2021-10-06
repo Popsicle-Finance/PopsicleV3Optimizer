@@ -9,9 +9,9 @@ import {PoolActions} from '../../contracts/popsicle-v3-optimizer/libraries/PoolA
 contract PoolActionsWrapper{
     using PoolActions for *;
     
+    IUniswapV3Pool public pool;
 
     function callBurnLiquidityShare(
-        IUniswapV3Pool pool,
         int24 tickLower,
         int24 tickUpper,
         uint256 totalSupply,
@@ -26,7 +26,6 @@ contract PoolActionsWrapper{
 
     /* iuniswap pool;?? */
     function callBurnExactLiquidity(
-        IUniswapV3Pool pool,
         int24 tickLower,
         int24 tickUpper,
         uint128 liquidity,
@@ -37,7 +36,6 @@ contract PoolActionsWrapper{
     }
 
     function callBurnAllLiquidity(
-        IUniswapV3Pool pool,
         int24 tickLower,
         int24 tickUpper
     ) external {
