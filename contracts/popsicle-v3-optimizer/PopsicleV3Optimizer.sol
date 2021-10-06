@@ -548,7 +548,6 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     // This mitigates price manipulation during rebalance and also prevents placing orders
     // when it's too volatile.
     modifier checkDeviation() {
-        pool.checkDeviation(IOptimizerStrategy(strategy).maxTwapDeviation(), IOptimizerStrategy(strategy).twapDuration());
         _;
     }
 
