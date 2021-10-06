@@ -10,38 +10,18 @@ methods {
 rule checkBurnLiquidityShare(
         int24 tickLower,
         int24 tickUpper,
-        uint256 totalSupply,
         uint256 share,
-        address to,
-        uint128 protocolLiquidity){
+        address to){
     env e;
-    require (share > 0 && share <= totalSupply);
-    uint256 totalSupplyBefore = totalSupply;
+    require (share > 0 && share <= totalSupply());
+    uint256 totalSupplyBefore = totalSupply();
     uint256 amount0;
     uint256 amount1;
-    amount0, amount1 = callBurnLiquidityShare(e, tickLower, tickUpper, totalSupply, share, 
-                       to, protocolLiquidity);
-    // assert(totalSupply == totalSupplyBefore);
+    amount0, amount1 = callBurnLiquidityShare(e, tickLower, tickUpper, share, 
+                       e.msg.sender);
+    assert(totalSupply() == totalSupplyBefore);
     assert(!lastReverted);
-    // assert(amount0 < share && amount1 < share);
-    // assert(amount0 + amount1 == share);
-}
-
-rule checkBurnLiquidityShareNoRevert(
-        int24 tickLower,
-        int24 tickUpper,
-        uint256 totalSupply,
-        uint256 share,
-        address to,
-        uint128 protocolLiquidity){
-    env e;
-    require (share > 0 && share <= totalSupply);
-    uint256 totalSupplyBefore = totalSupply;
-    uint256 amount0;
-    uint256 amount1;
-    amount0, amount1 = callBurnLiquidityShare(e, tickLower, tickUpper, totalSupply, share, 
-                       to, protocolLiquidity);
-    assert(!lastReverted);
+    
 }
 
 
@@ -49,8 +29,7 @@ rule checkBurnLiquidityShareNoRevert(
 rule checkBurnExactLiquidity(
         int24 tickLower,
         int24 tickUpper,
-        uint128 liquidity,
-        address to
+        uint128 liquidity
     ){
         env e;
         require to == e.msg.sender;
@@ -60,7 +39,14 @@ rule checkBurnExactLiquidity(
             tickLower,
             tickUpper,
             liquidity,
-            to);
+            e.msg.sender);
         assert liquidity == 0 => amount0 == 0 && amount1 == 0;
-        assert liquidity > 0 => amount0 > 0 && amount1 > 0;// && (amount0 <= liquidity || amount1 <= liquidity);
+        assert liquidity > 0 => amount0 > 0 || amount1 > 0;// && (amount0 <= liquidity || amount1 <= liquidity);
+}
+
+rule checkBurnAllLiquidity(int24 tickLower,
+                        int24 tickUpper){
+    callBurnAllLiquidity(tickLower, tickUpper);
+    // uint128 liquidity = pool.positionLiquidity(tickLower, tickUpper);
+    // assert(liquidity ==0);
 }

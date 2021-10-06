@@ -10,16 +10,21 @@ contract PoolActionsWrapper{
     using PoolActions for *;
     
     IUniswapV3Pool public pool;
+    uint256 totalSupply;
+    // Accrued protocol fees in terms of token0
+    // uint256 public protocolFees0;
+    // Accrued protocol fees in terms of token1
+    // uint256 public protocolFees1;
+    uint128 protocolLiquidity;
+    
 
     function callBurnLiquidityShare(
         int24 tickLower,
-        int24 tickUpper,
-        uint256 totalSupply,
+        int24 tickUpper,       
         uint256 share,
-        address to,
-        uint128 protocolLiquidity
+        address to   
     ) external returns (uint256 amount0, uint256 amount1) {
-        
+        // uint128 protocolLiquidity = pool.liquidityForAmounts(protocolFees0, protocolFees1, tickLower, tickUpper);
         (amount0 , amount1) = PoolActions.burnLiquidityShare(pool, tickLower, tickUpper, 
                                   totalSupply, share, to, protocolLiquidity);
     }
@@ -39,7 +44,6 @@ contract PoolActionsWrapper{
         int24 tickLower,
         int24 tickUpper
     ) external {
-        
         PoolActions.burnAllLiquidity(pool, tickLower, tickUpper);
     }
 }
