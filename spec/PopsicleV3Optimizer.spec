@@ -100,7 +100,7 @@ ghost approximateSqrt(uint256) returns uint256;
 	( x > 0 => approximateSqrt(x) == x/4 +1 );
 }*/
 	
-
+/*
 rule sanity(method f) filtered { f -> !f.isView  && f.selector != rebalance().selector  }  {
 	env e;
 	calldataarg args;
@@ -115,8 +115,8 @@ rule sanityForView(method f) filtered { f -> f.isView }  {
 	f(e,args);
 	assert(false);
 }
+*/
 
-/*
 rule reentrency(method f) filtered { f -> !f.isView } {
 	env e;
 	calldataarg args;
@@ -124,7 +124,7 @@ rule reentrency(method f) filtered { f -> !f.isView } {
 	f@withrevert(e,args);
 	assert lastReverted; 
 }
-*/
+
 
 rule zeroCharacteristicOfWithdraw(uint256 shares, address to){
     env e;

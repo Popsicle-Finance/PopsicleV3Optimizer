@@ -123,9 +123,11 @@ library PoolVariables {
     /// @dev Rounds tick down towards negative infinity so that it's a multiple
     /// of `tickSpacing`.
     function floor(int24 tick, int24 tickSpacing) internal pure returns (int24) {
-        int24 compressed = tick / tickSpacing;
+    /*    int24 compressed = tick / tickSpacing;
         if (tick < 0 && tick % tickSpacing != 0) compressed--;
         return compressed * tickSpacing;
+        */
+        return 0;
     }
 
     /// @dev Gets ticks with proportion equivalent to desired amount
@@ -137,7 +139,7 @@ library PoolVariables {
     /// @return tickLower The lower tick of the range
     /// @return tickUpper The upper tick of the range
     function getPositionTicks(IUniswapV3Pool pool, uint256 amount0Desired, uint256 amount1Desired, int24 baseThreshold, int24 tickSpacing) internal view returns(int24 tickLower, int24 tickUpper) {
-        Info memory cache = 
+     /*   Info memory cache = 
             Info(amount0Desired, amount1Desired, 0, 0, 0, 0, 0);
         // Get current price and tick from the pool
         ( uint160 sqrtPriceX96, int24 currentTick, , , , , ) = pool.slot0();
@@ -161,7 +163,7 @@ library PoolVariables {
         checkRange(cache.tickLower, cache.tickUpper);
         
         tickLower = cache.tickLower;
-        tickUpper = cache.tickUpper;
+        tickUpper = cache.tickUpper; */
     }
 
     /// @dev Gets amounts of token0 and token1 that can be stored in range of upper and lower ticks
@@ -209,12 +211,13 @@ library PoolVariables {
 
     /// @dev Fetches time-weighted average price in ticks from Uniswap pool for specified duration
     function getTwap(IUniswapV3Pool pool, uint32 twapDuration) internal view returns (int24) {
-        uint32 _twapDuration = twapDuration;
+      /*  uint32 _twapDuration = twapDuration;
         uint32[] memory secondsAgo = new uint32[](2);
         secondsAgo[0] = _twapDuration;
         secondsAgo[1] = 0;
 
         (int56[] memory tickCumulatives, ) = pool.observe(secondsAgo);
-        return int24((tickCumulatives[1] - tickCumulatives[0]) / _twapDuration);
+        return int24((tickCumulatives[1] - tickCumulatives[0]) / _twapDuration);*/
+        return 0;
     }
 }
