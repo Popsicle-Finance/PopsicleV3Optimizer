@@ -4,7 +4,7 @@ methods {
     transfer(address,uint) => DISPATCHER(true)
     balanceOf(address) => DISPATCHER(true)
     transferFrom(address,address,uint) => DISPATCHER(true)
-    mint(uint256) => DISPATCHER(true)
+    // mint(uint256) => DISPATCHER(true)
 
 }
 rule checkBurnLiquidityShare(
