@@ -8,7 +8,7 @@ library Babylonian {
     // credit for this implementation goes to
     // https://github.com/abdk-consulting/abdk-libraries-solidity/blob/master/ABDKMath64x64.sol#L687
     function sqrt(uint256 x) internal pure returns (uint256) {
-        if (x == 0) return 0;
+    /*    if (x == 0) return 0;
         // this block is equivalent to r = uint256(1) << (BitMath.mostSignificantBit(x) / 2);
         // however that code costs significantly more gas
         uint256 xx = x;
@@ -48,6 +48,7 @@ library Babylonian {
         r = (r + x / r) >> 1;
         r = (r + x / r) >> 1; // Seven iterations should be enough
         uint256 r1 = x / r;
-        return (r < r1 ? r : r1);
+        return (r < r1 ? r : r1);*/
+        return 1;
     }
 }
