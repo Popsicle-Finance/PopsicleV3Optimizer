@@ -8,6 +8,6 @@ library PositionKey {
         int24 tickLower,
         int24 tickUpper
     ) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(owner, tickLower, tickUpper));
+        return bytes32(0);
     }
 }
