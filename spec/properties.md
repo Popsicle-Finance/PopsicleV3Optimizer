@@ -1,50 +1,58 @@
 
 # Properties: 
 
-  ## total assets of user:
+      balances[user] <= totalSupply()
+
+      ghost that proves sums(balances) == totalSupply
+
+  ## montonicity : Gadi
+      totalSupply decrease <=> positionAmounts(pool, tickLower, tickUpper) decrease
+
+  ## validity of total supply : Gadi
+      totalSupply >=  positionLiquidity - protocolLiquidity
+
+
+ ## reentrency
+
+
+  ## total assets of user: totalAssetsOfUser commented out
         (amount0, amount1) = positionAmounts(pool, tickLower, tickUpper)
         (protocol0, protocol1) = amountsForLiquidity(pool, protocolFee0, _tickLower, _tickUpper)
         usersAmount0 = amount0 - protocolFees0
         token0.balanceOf(user) +  usersAmount0 * balanceOf[user] / totalSupply() 
 
-        Should stay the same on deposit
+        Should stay the same on all functions
 
-        Should decrease on withdraw(share, user) by fee(share)
+       
 
-        should increase in any other function (by other users)
-
-        ** we think this breaks on _compoundFees in case when the pool.mint returns values less than the current balance 
-
-
-  ## additivity of withdraw 
+  ## additivity of withdraw : written, fails, reviewed 
         Withdraw (shareX, msg.sender) ; Withdraw(shareY, msg.sender) == Withdraw (shareX + shareY, msg.sender)
 
         balanceof[msg.sender] >= shareX + shareY 
         token0.balanceOf[msg.sender]
         token1.balanceOf[msg.sender]
 
-  ## Zero characteristic of withdraw:
-  // if tick is not out of range then
-        (amount0,amount1) =  withdraw(share, to) =>
-            (amount0 == 0 && amount1 == 0) ||
-            (amount0 != 0 && amount1 != 0)
-        
+      
 
     
-  ## front running on withdraw (this broke but looks like fixed now)
+  ## front running on withdraw (this broke but looks like fixed now): written, fails, need review
         withdrawing the same amount at the same block yields the same token amounts 
             withdraw@user1(share, user1) ; withdraw@user2(share, user2) 
                 token0.balanceOf[user1] ==  token0.balanceOf[user2]
                 token1.balanceOf[user1] ==  token1.balanceOf[user2] 
  
- === until here
-  ## solvency of the system  
+
+  ## zero characteristic  Gadi
+      withdraw(shares) == (0,0)   =>  share ==  0
+
+
+  ## solvency of the system  - written, fails, need review 
          
         (amount0, amount1) = positionAmounts(pool, tickLower, tickUpper)
         usersAmount0 = amount0 - protocolFees0
         amountInUniswapPerShare0 = usersAmount0 / totalSupply()
 
-        amountInUniswapPerShare should stay the same on withdraw, deposit, ERC20 functions  if no fee collected if ratio didn't hange
+        amountInUniswapPerShare should stay the same on withdraw, deposit, ERC20 functions  if no fee collected if ratio didn't change
 
         if fees collected amountInUniswapPerShare can only increase    
 
