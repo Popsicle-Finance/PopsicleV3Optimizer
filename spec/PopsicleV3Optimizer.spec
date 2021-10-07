@@ -131,7 +131,7 @@ rule zeroCharacteristicOfWithdraw(uint256 shares, address to){
     env e;
     uint256 amount0;
     uint256 amount1;
-
+require shares == 2^255;
     amount0,amount1 =  withdraw(e, shares, to);
 
     assert (amount0 == 0 && amount1 == 0 => shares == 0);
