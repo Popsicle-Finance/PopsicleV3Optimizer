@@ -1,6 +1,21 @@
 
 # Properties: 
 
+      balances[user] <= totalSupply()
+
+      ghost that proves sums(balances) == totalSupply
+
+  ## montonicity : Gadi
+      totalSupply decrease <=> positionAmounts(pool, tickLower, tickUpper) decrease
+
+  ## validity of total supply : Gadi
+      totalSupply >=  positionLiquidity - protocolLiquidity
+
+
+ ## reentrency
+
+
+  ## total assets of user: totalAssetsOfUser commented out
   ## total assets of user:
       earnfees
       compoundfees
@@ -12,6 +27,11 @@
 // f - external
         Should stay the same on external functions
 
+        Should stay the same on all functions
+
+       
+
+  ## additivity of withdraw : written, fails, reviewed 
 
         ** we think this breaks on _compoundFees in case when the pool.mint returns values less than the current balance 
 
@@ -23,28 +43,27 @@
         token0.balanceOf[msg.sender]
         token1.balanceOf[msg.sender]
 
-  ## Zero characteristic of withdraw:
-  // if tick is not out of range then
-        (amount0,amount1) =  withdraw(share, to) =>
-            (amount0 == 0 && amount1 == 0) ||
-            (amount0 != 0 && amount1 != 0)
-        
+      
 
     
-  ## front running on withdraw (this broke but looks like fixed now)
+  ## front running on withdraw (this broke but looks like fixed now): written, fails, need review
         withdrawing the same amount at the same block yields the same token amounts 
             withdraw@user1(share, user1) ; withdraw@user2(share, user2) 
                 token0.balanceOf[user1] ==  token0.balanceOf[user2]
                 token1.balanceOf[user1] ==  token1.balanceOf[user2] 
  
- === until here
-  ## solvency of the system  
+
+  ## zero characteristic  Gadi
+      withdraw(shares) == (0,0)   =>  share ==  0
+
+
+  ## solvency of the system  - written, fails, need review 
          
         (amount0, amount1) = positionAmounts(pool, tickLower, tickUpper)
         usersAmount0 = amount0 - protocolFees0
         amountInUniswapPerShare0 = usersAmount0 / totalSupply()
 
-        amountInUniswapPerShare should stay the same on withdraw, deposit, ERC20 functions  if no fee collected if ratio didn't hange
+        amountInUniswapPerShare should stay the same on withdraw, deposit, ERC20 functions  if no fee collected if ratio didn't change
 
         if fees collected amountInUniswapPerShare can only increase    
 
