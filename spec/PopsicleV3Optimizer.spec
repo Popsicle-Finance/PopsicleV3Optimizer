@@ -2,7 +2,8 @@
 
 using DummyERC20A as token0
 using DummyERC20B as token1
-using IUniswapV3Pool as pool
+
+// using ERC20Permit as erc20Permit
 
 methods {
 	//math functions
@@ -130,11 +131,22 @@ rule zeroCharacteristicOfWithdraw(uint256 shares, address to){
     env e;
     uint256 amount0;
     uint256 amount1;
+
     amount0,amount1 =  withdraw(e, shares, to);
 
-    assert (amount0 == 0 && amount1 == 0) || (amount0 != 0 && amount1 != 0);
+    assert (amount0 == 0 && amount1 == 0 => shares == 0);
 }
 
+rule withdrawShouldSucceed(uint256 shares, address to){
+    env e;
+    uint256 amount0;
+    uint256 amount1;
+
+    require shares > 0;
+    amount0,amount1 =  invoke withdraw(e, shares, to);
+
+    assert lastReverted;
+}
 
 
 
@@ -143,8 +155,7 @@ rule zeroCharacteristicOfWithdraw(uint256 shares, address to){
 
 rule additivityOfWithdraw(uint256 sharesA, uint256 sharesB, address to){
     env e;
-	storage init = lastStorage;
-	address from = e.msg.sender;
+
 
     uint256 amount00;
     uint256 amount01;
@@ -152,6 +163,8 @@ rule additivityOfWithdraw(uint256 sharesA, uint256 sharesB, address to){
     uint256 amount10;
     uint256 amount11;
 
+    storage init = lastStorage;
+	
     amount00, amount01 = withdraw(e, sharesA, to);
     amount10, amount11 = withdraw(e, sharesB, to);
 
