@@ -44,6 +44,8 @@ methods {
 
     // WETH
     withdraw(uint256, address) => DISPATCHER(true)
+    balanceOf(address) returns(uint256) envfree
+    totalSupply() returns(uint256) envfree
 
 	// pool
 	/*
@@ -293,3 +295,34 @@ earnfees
 compoundfees;
 amountInUniswapPerShare should increase.
 */
+
+// invariant balanceAtMostTotalSupply(address user) token0.balanceOf(e, user) + token1.balanceOf(e, user) <= totalSupply(e)
+
+ghost ghostSupply() returns uint256;
+
+/* ghost ghostSupply(){
+    init_state axiom forall user. balanceOf(user) == 0;
+} */
+
+
+// the hook that updates the ghost function as follows
+// "At every write to the value at key 'a' in 'balances'
+// increase ghostTotalSupply by the difference between
+// tho old value and the new value"
+//                              the new value ↓ written:
+ hook Sstore _balances[KEY address a] uint256 balance
+// the old value ↓ already there
+    (uint256 old_balance) STORAGE {
+  havoc ghostSupply assuming ghostSupply@new() == ghostSupply@old() +
+      (balance - old_balance);
+}
+
+rule totalSupplyInvariant(method f) {
+  require totalSupply() == ghostSupply();
+  calldataarg arg;
+  env e;
+  sinvoke f(e, arg);
+  assert totalSupply() == ghostSupply();
+}
+
+// invariant userAtMostTotalSupply(adress user) token.balanceOf(user) <= totalSupply()
