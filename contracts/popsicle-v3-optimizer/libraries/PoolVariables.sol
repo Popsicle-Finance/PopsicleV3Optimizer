@@ -54,7 +54,7 @@ library PoolVariables {
         int24 _tickUpper
     ) internal view returns (uint128) {
         //Get current price from the pool
-        return amount0 < amount1 / 4 ? amount0 : amount1 / 4;
+        return (uint128) (amount0 < amount1 / 4 ? amount0 : amount1 / 4);
     }
 
     /// @dev Amounts of token0 and token1 held in contract position.
