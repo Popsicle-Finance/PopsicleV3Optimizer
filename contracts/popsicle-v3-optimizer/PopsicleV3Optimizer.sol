@@ -640,7 +640,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         uint128 protocolLiquidity = pool.liquidityForAmounts(protocolFees0, protocolFees1, tickLower, tickUpper);
         uint128 liquidity = pool.positionLiquidity(tickLower, tickUpper);
         uint128 usersLiquidity = liquidity - protocolLiquidity;
-        uint128 amountInUniswapPerShare = usersLiquidity / (uint128 totalSupply());
+        uint128 amountInUniswapPerShare = usersLiquidity / (uint128) (totalSupply());
         return amountInUniswapPerShare;
     }
 }

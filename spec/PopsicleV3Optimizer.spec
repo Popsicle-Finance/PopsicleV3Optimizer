@@ -3,7 +3,7 @@
 using DummyERC20A as token0
 using DummyERC20B as token1
 using SymbolicUniswapV3Pool as pool
-using PoolVariables as PoolVariables
+
 
 methods {
 	//math functions
@@ -126,7 +126,6 @@ rule reentrency(method f) filtered { f -> !f.isView } {
 	assert lastReverted; 
 }
 
-
 rule zeroCharacteristicOfWithdraw(uint256 shares, address to){
     env e;
     uint256 amount0;
@@ -135,10 +134,6 @@ rule zeroCharacteristicOfWithdraw(uint256 shares, address to){
 
     assert (amount0 == 0 && amount1 == 0) || (amount0 != 0 && amount1 != 0);
 }
-
-
-
-
 
 // additivity of withdraw 
 
@@ -188,12 +183,12 @@ rule frontRunningOnWithdraw(uint256 shares1, address user1, uint256 shares2, add
 }
 
 // after calling rebalance, token0.balanceOf(this)==0 and token1.balanceOf(this)==0
-rule zeroBalancesAfterRebalance(){
+/* rule zeroBalancesAfterRebalance(){
     env e;
     rebalance(e);
     assert (token0.balanceOf(e, currentContract)==0 && 
                              token1.balanceOf(e, currentContract)==0);
-}
+} */
 
 /*
 function userAmounts(uint256 amount0) returns uint256
@@ -210,38 +205,41 @@ function userAmounts(uint256 amount0) returns uint256
 }
 */
 
-
-// total assets of user:
 /*
+
+// total assets of user:       
+// f - external
+        // Should stay the same on external functions
+// we think this breaks on _compoundFees in case when the pool.mint returns values less than the current balance 
+
 rule totalAssetsOfUser(address user, int24 tickLower, int24 tickUpper, method f){
     env e;
+
+   // maybe collectprotocolfees?
+    _earnFees();
     uint256 amount0;
     uint256 amount1;
+    amount0, amount1 = this._compoundFees();
     amount0, amount1 = positionAmounts(pool, tickLower, tickUpper);
-
     uint256 protocol0;
     uint256 protocol1;
-    // protocol0, protocol1 = amountsForLiquidity(pool, protocolFee0, tickLower, tickUpper);
-    uint256 usersAmount0 = amount0 - currentContract.protocolFees0;
-    uint256 totalAssetsBefore0 = token0.balanceOf(user) +  usersAmount0 * token0.balanceOf[user] / totalSupply() 
+    protocol0, protocol1 = PoolVariableWrapper.callAmountsForLiquidity(e, pool, protocolFee0(), tickLower, tickUpper);
+    uint256 usersAmount0 = amount0 - protocolFees0(e);
+    uint256 usersAmount1 = amount1 - protocolFees1(e);
+    uint256 totalAssetsBefore0 = token0.balanceOf(e, user) +  usersAmount0 * token0.balanceOf(e, user) / totalSupply(e) ;
+    uint256 totalAssetsBefore1 = token1.balanceOf(user) +  usersAmount1 * token1.balanceOf(e, user) / totalSupply(e) ;
     calldataarg args;
 	f(e,args);
-
-
-    
-    Should stay the same on deposit
-
-    Should decrease on withdraw(share, user) by fee(share)
-
-    should increase in any other function (by other users)
-
-    ** we think this breaks on _compoundFees in case when the pool.mint returns values less than the current balance 
-    
+    uint256 totalAssetsAfter0 = token0.balanceOf(e, user) +  usersAmount0 * token0.balanceOf(e, user) / totalSupply(e) ;
+    if (f.select == withdraw || f.select == deposit || f.select == init || f.select == rebalance || 
+        f.select == reaarange || f.select == collectProtocolFees || f.select  == position)
+    assert(totalAssetsBefore0 == totalAssetsAfter0);   
 }
 */
 
 
 // if fees collected amountInUniswapPerShare can only increase
+/*
  rule solvencyOfTheSystem(int24 tickLower, int24 tickUpper){
    uint256 amount0;
     uint256 amount1;
@@ -258,7 +256,7 @@ rule totalAssetsOfUser(address user, int24 tickLower, int24 tickUpper, method f)
     assert(amountInUniswapPerShare0 <= amountInUniswapPerShare0After &&
            amountInUniswapPerShare1 <= amountInUniswapPerShare1After);
 } 
-
+*/
 
 
 // Calculated by liquidty
@@ -268,8 +266,18 @@ rule fixedSolvencyOfTheSystem(method f){
 	calldataarg args;
     // require(f.select == withdraw || f.select == deposit || f.select == transfer || f.select == transferFrom)
     
-    uint128 amountInUniswapPerShareBefore = amountInUniswapPerShare();
+    uint128 amountInUniswapPerShareBefore = amountInUniswapPerShare(e);
     f(e, args);
-    uint128  amountInUniswapPerShareAfter = amountInUniswapPerShare();
-    assert (amountInUniswapPerShareBefore == amountInUniswapPerShareAfter);
+    uint128  amountInUniswapPerShareAfter = amountInUniswapPerShare(e);
+  //  if (f.selector == "withdraw" || f.selector == "deposit" || f.selector == "transfer" || f.selector == "transferFrom")
+        assert (amountInUniswapPerShareBefore == amountInUniswapPerShareAfter);
+  //  assert(true);
 }
+
+// if f is swap the before <= after
+/*
+swap(token0 to token1); swap(token1 to token0) 
+earnfees
+compoundfees;
+amountInUniswapPerShare should increase.
+*/

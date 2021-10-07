@@ -2,16 +2,16 @@
 # Properties: 
 
   ## total assets of user:
+      earnfees
+      compoundfees
         (amount0, amount1) = positionAmounts(pool, tickLower, tickUpper)
         (protocol0, protocol1) = amountsForLiquidity(pool, protocolFee0, _tickLower, _tickUpper)
         usersAmount0 = amount0 - protocolFees0
         token0.balanceOf(user) +  usersAmount0 * balanceOf[user] / totalSupply() 
+        
+// f - external
+        Should stay the same on external functions
 
-        Should stay the same on deposit
-
-        Should decrease on withdraw(share, user) by fee(share)
-
-        should increase in any other function (by other users)
 
         ** we think this breaks on _compoundFees in case when the pool.mint returns values less than the current balance 
 
