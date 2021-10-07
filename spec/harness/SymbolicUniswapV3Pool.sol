@@ -150,8 +150,13 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
         
         require (amount0 < 2**128);
         require (amount1 < 2**128);
+        uint128 _owed0 = owed0;
+        uint128 _owed1 = owed1;
+         
         owed0 += uint128(amount0);
         owed1 += uint128(amount1);
+        require(owed0 >= _owed0);
+        require(owed1 >= _owed1);
     }
 
     /// @notice Swap token0 for token1, or token1 for token0, rate does not change so limit amout to 100, and pool creator must tarnsfer to it huge amount of token0 and token1

@@ -1,7 +1,9 @@
 pragma solidity >=0.5.0;
 
+import {IUniswapV3Pool} from '../../contracts/popsicle-v3-optimizer/interfaces/IUniswapV3Pool.sol';
+import {PoolVariables} from '../../contracts/popsicle-v3-optimizer/libraries/PoolVariables.sol';
 // import '../../contracts/popsicle-v3-optimizer/libraries/LiquidityAmounts.sol';
-import '../../contracts/popsicle-v3-optimizer/interfaces/IUniswapV3Pool.sol';
+// import '../../contracts/popsicle-v3-optimizer/interfaces/IUniswapV3Pool.sol';
 /* import "../../contracts/popsicle-v3-optimizer/libraries/TickMath.sol";
 import "../../contracts/popsicle-v3-optimizer/libraries/PositionKey.sol";
 import "../../contracts/popsicle-v3-optimizer/libraries/LowGasSafeMath.sol";
@@ -10,9 +12,8 @@ import {PoolVariables} from '../../contracts/popsicle-v3-optimizer/libraries/Poo
 
 contract PoolVariablesWrapper{
     using PoolVariables for *;
-
+    IUniswapV3Pool pool;
     function callAmountsForLiquidity(
-        IUniswapV3Pool pool,
         uint128 liquidity,
         int24 _tickLower,
         int24 _tickUpper
@@ -22,7 +23,6 @@ contract PoolVariablesWrapper{
     } 
 
     function callLiquidityForAmounts(
-        IUniswapV3Pool pool,
         uint256 amount0,
         uint256 amount1,
         int24 _tickLower,
@@ -31,14 +31,14 @@ contract PoolVariablesWrapper{
         return PoolVariables.liquidityForAmounts(pool, amount0, amount1, _tickLower, _tickUpper);
     }
 
-    function callPositionAmounts(IUniswapV3Pool pool, int24 _tickLower, int24 _tickUpper)
+    function callPositionAmounts(int24 _tickLower, int24 _tickUpper)
         external
         view
         returns (uint256 amount0, uint256 amount1){
             (amount0 , amount1) =  PoolVariables.positionAmounts(pool, _tickLower, _tickUpper);
     }
 
-    function callPositionLiquidity(IUniswapV3Pool pool, int24 _tickLower, int24 _tickUpper)
+    function callPositionLiquidity(int24 _tickLower, int24 _tickUpper)
         external
         view
         returns (uint128 liquidity){
@@ -74,11 +74,11 @@ contract PoolVariablesWrapper{
         zeroGreaterOne = PoolVariables.amountsDirection(amount0Desired, amount1Desired, amount0, amount1);
     }
 
-    function callcheckDeviation(IUniswapV3Pool pool, int24 maxTwapDeviation, uint32 twapDuration) external view {
+    function callcheckDeviation(int24 maxTwapDeviation, uint32 twapDuration) external view {
         PoolVariables.checkDeviation(pool, maxTwapDeviation, twapDuration);
     }
 
-    function callGetTwap(IUniswapV3Pool pool, uint32 twapDuration) internal view returns (int24){
+    function callGetTwap(uint32 twapDuration) internal view returns (int24){
         return PoolVariables.getTwap(pool, twapDuration);
     }
 }

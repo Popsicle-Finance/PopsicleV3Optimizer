@@ -16,16 +16,27 @@
 
 
   ## total assets of user: totalAssetsOfUser commented out
+  ## total assets of user:
+      earnfees
+      compoundfees
         (amount0, amount1) = positionAmounts(pool, tickLower, tickUpper)
         (protocol0, protocol1) = amountsForLiquidity(pool, protocolFee0, _tickLower, _tickUpper)
         usersAmount0 = amount0 - protocolFees0
         token0.balanceOf(user) +  usersAmount0 * balanceOf[user] / totalSupply() 
+        
+// f - external
+        Should stay the same on external functions
 
         Should stay the same on all functions
 
        
 
   ## additivity of withdraw : written, fails, reviewed 
+
+        ** we think this breaks on _compoundFees in case when the pool.mint returns values less than the current balance 
+
+
+  ## additivity of withdraw 
         Withdraw (shareX, msg.sender) ; Withdraw(shareY, msg.sender) == Withdraw (shareX + shareY, msg.sender)
 
         balanceof[msg.sender] >= shareX + shareY 
