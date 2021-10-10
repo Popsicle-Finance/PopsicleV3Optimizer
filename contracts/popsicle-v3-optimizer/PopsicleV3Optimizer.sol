@@ -205,8 +205,8 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         )
     {
         require(amount0Desired > 0 && amount1Desired > 0, "ANV");
-      //  _earnFees();
-      //  _compoundFees(); // prevent user drains others
+        _earnFees();
+        _compoundFees(); // prevent user drains others
         uint128 protocolLiquidity = pool.liquidityForAmounts(protocolFees0, protocolFees1, tickLower, tickUpper);
         uint128 liquidityLast = pool.positionLiquidity(tickLower, tickUpper).sub128(protocolLiquidity); // prevent protocol drains users 
         // compute the liquidity amount
@@ -244,8 +244,8 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     {
         require(shares > 0, "S");
         require(to != address(0), "WZA");
-     //   _earnFees();
-      //  _compoundFees();
+        _earnFees();
+        _compoundFees();
         //Get Liquidity for ProtocolFee
         uint128 protocolLiquidity = pool.liquidityForAmounts(protocolFees0, protocolFees1, tickLower, tickUpper);
         
@@ -260,7 +260,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     /// @inheritdoc IPopsicleV3Optimizer
     function rerange() external override nonReentrant checkDeviation {
         require(_operatorApproved[msg.sender], "ONA");
-      //  _earnFees();
+        _earnFees();
         //Burn all liquidity from pool to rerange for Optimizer's balances.
         pool.burnAllLiquidity(tickLower, tickUpper);
         
