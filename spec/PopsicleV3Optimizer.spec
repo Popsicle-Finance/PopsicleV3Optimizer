@@ -158,6 +158,21 @@ rule zeroCharacteristicOfWithdraw(uint256 shares, address to){
 invariant protocol_Greater_poolLiquidity()
     position_Liquidity() > protocol_Liquidity()
 
+invariant protocol_Greater_poolLiquidity_morePercise()
+    position_Liquidity() > protocol_Liquidity() ||
+    position_Liquidity() == protocol_Liquidity() && totalSupply() == 0
+
+rule temp (uint256 amount0Before, uint256 amount1Before){
+env e;
+
+require (position_Liquidity() > protocol_Liquidity() ||
+    position_Liquidity() == protocol_Liquidity() && totalSupply() == 0);
+
+    collectProtocolFees(e,amount0Before, amount1Before);
+
+    assert (position_Liquidity() > protocol_Liquidity() ||
+    position_Liquidity() == protocol_Liquidity() && totalSupply() == 0);
+}
 rule additivityOfWithdraw(uint256 sharesA, uint256 sharesB, address to){
     env e;
 
