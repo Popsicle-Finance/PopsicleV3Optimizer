@@ -39,7 +39,7 @@ interface IUniswapV3SwapCallback {
 
 contract SymbolicUniswapV3Pool is IUniswapV3Pool {
     uint256 public liquidity;
-    uint256 public ratio;
+    uint256 public constant ratio = 4;
     address public immutable override token0;
     address public immutable override token1;
     uint128 public owed0;
@@ -80,9 +80,9 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
         uint128 amount,
         bytes calldata data
     ) external override returns (uint256 amount0, uint256 amount1) {
-        liquidity += amount;
+        liquidity = liquidity.add(amount);
         amount0 = amount;
-        amount1 = amount * ratio;
+        amount1 = amount.mul(ratio);
         uint256 token0Balance = balance0();
         uint256 token1Balance = balance1();
         IUniswapV3MintCallback(msg.sender).uniswapV3MintCallback(
@@ -91,8 +91,8 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
             data
         );
         //maybe add require that now the balance increased as expected
-        require(balance0() >= token0Balance + amount0);
-        require(balance1() >= token1Balance + amount1);
+        require(balance0() >= token0Balance.add(amount0));
+        require(balance1() >= token1Balance.add(amount1));
     }
 
     /// @notice Collects tokens owed to a position
@@ -117,14 +117,14 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
         if (amount0Requested >= owed0) {
             amount0 = owed0;
         } else {
-            owed0 -= amount0Requested;
+            owed0 = owed0.sub(amount0Requested);
             amount0 = amount0Requested;
         }
         IERC20(token0).transfer(recipient, amount0);
         if (amount1Requested >= owed1) {
             amount1 = owed1;
         } else {
-            owed1 -= amount1Requested;
+            owed1 = owed0.sub(amount1Requested);
             amount1 = amount1Requested;
         }
         IERC20(token1).transfer(recipient, amount1);
@@ -145,16 +145,16 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
     ) external override returns (uint256 amount0, uint256 amount1) {
         require(liquidity >= amount);
         amount0 = amount;
-        amount1 = amount * ratio;
-        liquidity -= amount;
+        amount1 = amount.mul(ratio);
+        liquidity = liquidity.sub(amount);
 
         require(amount0 < 2**128);
         require(amount1 < 2**128);
         uint128 _owed0 = owed0;
         uint128 _owed1 = owed1;
 
-        owed0 += uint128(amount0);
-        owed1 += uint128(amount1);
+        owed0 = owed0.add(uint128(amount0));
+        owed1 = owed1.add(uint128(amount1));
         require(owed0 >= _owed0);
         require(owed1 >= _owed1);
     }
@@ -183,19 +183,19 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
             : (
                 zeroForOne
                     ? amountSpecified / int256(ratio)
-                    : amountSpecified * int256(ratio)
+                    : amountSpecified.mul(int256(ratio))
             );
         int256 amountToGet = exactInput
             ? (
                 zeroForOne
-                    ? amountSpecified * int256(ratio)
+                    ? amountSpecified.mul(int256(ratio))
                     : amountSpecified / int256(ratio)
             )
             : amountSpecified;
         // do the transfers and collect payment
-        amountToGet = (amountToGet * 99) / 100;
+        amountToGet = amountToGet.mul(99) / 100;
         if (zeroForOne) {
-            owed1 += uint128(uint256(amountToGet) / 100);
+            owed1 = owed1.add(uint128(uint256(amountToGet) / 100));
             IERC20(token1).transfer(recipient, uint256(amountToGet));
             uint256 balance0Before = balance0();
             IUniswapV3SwapCallback(msg.sender).uniswapV3SwapCallback(
@@ -208,7 +208,7 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
                 "IIA"
             );
         } else {
-            owed0 += uint128(uint256(amountToGet) / 100);
+            owed0 = owed0.add(uint128(uint256(amountToGet) / 100));
             IERC20(token0).transfer(recipient, uint256(amountToGet));
             uint256 balance1Before = balance1();
             IUniswapV3SwapCallback(msg.sender).uniswapV3SwapCallback(
@@ -220,13 +220,6 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
                 balance1Before.add(uint256(amountToPay)) <= balance1(),
                 "IIA"
             );
-            if (ratio == 1) {
-                ratio = 2;
-            } else if (ratio == 2) {
-                ratio = 4;
-            } else {
-                ratio = 1;
-            }
         }
     }
 
@@ -289,7 +282,7 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
             bool unlocked
         )
     {
-        return (ratio, 13863, 0, 0, 0, 0, true);
+        return (2 << 96, 13863, 0, 0, 0, 0, true);
     }
 
     /// @notice Returns the information about a position by the position's key
