@@ -129,23 +129,26 @@ rule zeroCharacteristicOfWithdraw(uint256 shares, address to){
     env e;
     uint256 amount0;
     uint256 amount1;
-require shares == 2^255;
+
     amount0,amount1 =  withdraw(e, shares, to);
 
     assert (amount0 == 0 && amount1 == 0 => shares == 0);
 }
+//   ## montonicity : Gadi
+//       totalSupply decrease <=> positionAmounts(pool, tickLower, tickUpper) decrease
 
-rule withdrawShouldSucceed(uint256 shares, address to){
-    env e;
-    uint256 amount0;
-    uint256 amount1;
+//   ## validity of total supply : Gadi
+//       totalSupply >=  positionLiquidity - protocolLiquidity
 
-    require shares > 0;
-    amount0,amount1 =  invoke withdraw(e, shares, to);
+// rule totalSupply_vs_positionAmounts(method f, address pool, uint256 tickLower, address tickUpper){}
+//    env e;
+//    uint256 totalsupplyBefore = totalSupply();
+//    uint256 _amount0;
+//    uint256 _amount1;
+//    uint256 amount0_;
+//    uint256 amount1_;
 
-    assert lastReverted;
-}
-
+// }
 // additivity of withdraw 
 
 rule additivityOfWithdraw(uint256 sharesA, uint256 sharesB, address to){
