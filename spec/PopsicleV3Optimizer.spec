@@ -44,6 +44,8 @@ methods {
 
     // WETH
     withdraw(uint256, address) => DISPATCHER(true)
+    balanceOf(address) returns(uint256) envfree
+    totalSupply() returns(uint256) envfree
 
 	// pool
 	/*
@@ -274,20 +276,7 @@ rule totalAssetsOfUser(address user, int24 tickLower, int24 tickUpper, method f)
 */
 
 
-// Calculated by liquidty
-// amountInUniswapPerShare should stay the same on withdraw, deposit, ERC20 functions 
-rule fixedSolvencyOfTheSystem(method f){
-    env e;
-	calldataarg args;
-    // require(f.select == withdraw || f.select == deposit || f.select == transfer || f.select == transferFrom)
-    
-    uint128 amountInUniswapPerShareBefore = amountInUniswapPerShare(e);
-    f(e, args);
-    uint128  amountInUniswapPerShareAfter = amountInUniswapPerShare(e);
-  //  if (f.selector == "withdraw" || f.selector == "deposit" || f.selector == "transfer" || f.selector == "transferFrom")
-        assert (amountInUniswapPerShareBefore == amountInUniswapPerShareAfter);
-  //  assert(true);
-}
+
 
 // if f is swap the before <= after
 /*
@@ -296,3 +285,48 @@ earnfees
 compoundfees;
 amountInUniswapPerShare should increase.
 */
+
+// invariant balanceAtMostTotalSupply(address user) token0.balanceOf(e, user) + token1.balanceOf(e, user) <= totalSupply(e)
+
+ghost ghostSupply() returns uint256;
+
+/* ghost ghostSupply(){
+    init_state axiom forall user. balanceOf(user) == 0;
+} */
+
+
+// the hook that updates the ghost function as follows
+// "At every write to the value at key 'a' in 'balances'
+// increase ghostTotalSupply by the difference between
+// tho old value and the new value"
+//                              the new value ↓ written:
+ hook Sstore _balances[KEY address a] uint256 balance
+// the old value ↓ already there
+    (uint256 old_balance) STORAGE {
+  havoc ghostSupply assuming ghostSupply@new() == ghostSupply@old() +
+      (balance - old_balance);
+}
+
+rule totalSupplyInvariant(method f) {
+  require totalSupply() == ghostSupply();
+  calldataarg arg;
+  env e;
+  sinvoke f(e, arg);
+  assert totalSupply() == ghostSupply();
+}
+
+// Calculated by liquidty
+// amountInUniswapPerShare should stay the same on withdraw, deposit, ERC20 functions 
+rule fixedSolvencyOfTheSystem(method f){
+    env e;
+	calldataarg args;
+    require(totalSupply() == ghostSupply());
+    // require(f.select == withdraw || f.select == deposit || f.select == transfer || f.select == transferFrom)
+    
+    uint128 amountInUniswapPerShareBefore = amountInUniswapPerShare(e);
+    f(e, args);
+    uint128  amountInUniswapPerShareAfter = amountInUniswapPerShare(e);
+  //  if (f.selector == "withdraw" || f.selector == "deposit" || f.selector == "transfer" || f.selector == "transferFrom")
+        assert (amountInUniswapPerShareBefore == amountInUniswapPerShareAfter);
+}
+// invariant userAtMostTotalSupply(adress user) token.balanceOf(user) <= totalSupply()
