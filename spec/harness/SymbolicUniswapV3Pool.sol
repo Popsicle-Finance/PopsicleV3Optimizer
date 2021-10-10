@@ -39,7 +39,7 @@ interface IUniswapV3SwapCallback {
 
 contract SymbolicUniswapV3Pool is IUniswapV3Pool {
     uint256 public liquidity;
-    uint256 public constant ratio = 4;
+    uint256 public ratio;
     address public immutable override token0;
     address public immutable override token1;
     uint128 public owed0;
@@ -147,12 +147,12 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
         amount0 = amount;
         amount1 = amount * ratio;
         liquidity -= amount;
-        
-        require (amount0 < 2**128);
-        require (amount1 < 2**128);
+
+        require(amount0 < 2**128);
+        require(amount1 < 2**128);
         uint128 _owed0 = owed0;
         uint128 _owed1 = owed1;
-         
+
         owed0 += uint128(amount0);
         owed1 += uint128(amount1);
         require(owed0 >= _owed0);
@@ -193,7 +193,7 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
             )
             : amountSpecified;
         // do the transfers and collect payment
-        amountToGet = amountToGet * 99 /100;
+        amountToGet = (amountToGet * 99) / 100;
         if (zeroForOne) {
             owed1 += uint128(uint256(amountToGet) / 100);
             IERC20(token1).transfer(recipient, uint256(amountToGet));
@@ -216,7 +216,17 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
                 amountToPay,
                 data
             );
-            require(balance1Before.add(uint256(amountToPay)) <= balance1(), "IIA");
+            require(
+                balance1Before.add(uint256(amountToPay)) <= balance1(),
+                "IIA"
+            );
+            if (ratio == 1) {
+                ratio = 2;
+            } else if (ratio == 2) {
+                ratio = 4;
+            } else {
+                ratio = 1;
+            }
         }
     }
 
@@ -279,7 +289,7 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
             bool unlocked
         )
     {
-        return (2<<96, 13863, 0, 0, 0, 0, true);
+        return (ratio, 13863, 0, 0, 0, 0, true);
     }
 
     /// @notice Returns the information about a position by the position's key

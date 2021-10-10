@@ -37,7 +37,8 @@ library PoolVariables {
         int24 _tickLower,
         int24 _tickUpper
     ) internal view returns (uint256, uint256) {
-        return (liquidity, liquidity * 4);
+        (uint160 price, , , , , , ) = pool.slot0();
+        return (liquidity, liquidity * price);
     }
 
     /// @dev Wrapper around `LiquidityAmounts.getLiquidityForAmounts()`.
@@ -54,8 +55,9 @@ library PoolVariables {
         int24 _tickLower,
         int24 _tickUpper
     ) internal view returns (uint128) {
+        (uint160 price, , , , , , ) = pool.slot0();
         //Get current price from the pool
-        return uint128(amount0 < amount1 / 4 ? amount0 : amount1 / 4);
+        return uint128(amount0 < amount1 / price ? amount0 : amount1 / price);
     }
 
     /// @dev Amounts of token0 and token1 held in contract position.
@@ -68,11 +70,15 @@ library PoolVariables {
     /// @param _tickUpper The upper tick of the range
     /// @return amount0 The amount of token0 held in position
     /// @return amount1 The amount of token1 held in position
-    function usersAmounts(IUniswapV3Pool pool, uint256 protocolFees0, uint256 protocolFees1, uint128 protocolFee, uint128 divisioner, int24 _tickLower, int24 _tickUpper)
-        internal
-        view
-        returns (uint256 amount0, uint256 amount1)
-    {   
+    function usersAmounts(
+        IUniswapV3Pool pool,
+        uint256 protocolFees0,
+        uint256 protocolFees1,
+        uint128 protocolFee,
+        uint128 divisioner,
+        int24 _tickLower,
+        int24 _tickUpper
+    ) internal view returns (uint256 amount0, uint256 amount1) {
         //Compute position key
         bytes32 positionKey = PositionKey.compute(
             address(this),
@@ -80,15 +86,30 @@ library PoolVariables {
             _tickUpper
         );
         //Get Position.Info for specified ticks
-        (uint128 liquidity, , , uint128 tokensOwed0, uint128 tokensOwed1) =
-            pool.positions(positionKey);
+        (uint128 liquidity, , , uint128 tokensOwed0, uint128 tokensOwed1) = pool
+            .positions(positionKey);
 
-        uint128 protocolLiquidity = liquidityForAmounts(pool, protocolFees0, protocolFees1, _tickLower, _tickUpper);
-        
+        uint128 protocolLiquidity = liquidityForAmounts(
+            pool,
+            protocolFees0,
+            protocolFees1,
+            _tickLower,
+            _tickUpper
+        );
+
         // Calc amounts of token0 and token1 including fees
-        (amount0, amount1) = amountsForLiquidity(pool, liquidity.sub128(protocolLiquidity), _tickLower, _tickUpper);
-        uint usersFee0 = tokensOwed0.sub128(tokensOwed0.mul128(protocolFee) / divisioner);
-        uint usersFee1 = tokensOwed1.sub128(tokensOwed1.mul128(protocolFee) / divisioner);
+        (amount0, amount1) = amountsForLiquidity(
+            pool,
+            liquidity.sub128(protocolLiquidity),
+            _tickLower,
+            _tickUpper
+        );
+        uint256 usersFee0 = tokensOwed0.sub128(
+            tokensOwed0.mul128(protocolFee) / divisioner
+        );
+        uint256 usersFee1 = tokensOwed1.sub128(
+            tokensOwed1.mul128(protocolFee) / divisioner
+        );
         amount0 = amount0.add(usersFee0);
         amount1 = amount1.add(usersFee1);
     }
@@ -124,8 +145,12 @@ library PoolVariables {
 
     /// @dev Rounds tick down towards negative infinity so that it's a multiple
     /// of `tickSpacing`.
-    function floor(int24 tick, int24 tickSpacing) internal pure returns (int24) {
-    /*    int24 compressed = tick / tickSpacing;
+    function floor(int24 tick, int24 tickSpacing)
+        internal
+        pure
+        returns (int24)
+    {
+        /*    int24 compressed = tick / tickSpacing;
         if (tick < 0 && tick % tickSpacing != 0) compressed--;
         return compressed * tickSpacing;
         */
@@ -228,8 +253,12 @@ library PoolVariables {
     }
 
     /// @dev Fetches time-weighted average price in ticks from Uniswap pool for specified duration
-    function getTwap(IUniswapV3Pool pool, uint32 twapDuration) internal view returns (int24) {
-      /*  uint32 _twapDuration = twapDuration;
+    function getTwap(IUniswapV3Pool pool, uint32 twapDuration)
+        internal
+        view
+        returns (int24)
+    {
+        /*  uint32 _twapDuration = twapDuration;
         uint32[] memory secondsAgo = new uint32[](2);
         secondsAgo[0] = _twapDuration;
         secondsAgo[1] = 0;
