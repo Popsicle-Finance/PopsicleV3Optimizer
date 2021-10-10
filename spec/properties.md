@@ -9,7 +9,7 @@
       totalSupply decrease <=> positionAmounts(pool, tickLower, tickUpper) decrease
 
   ## validity of total supply : Gadi
-      totalSupply >=  positionLiquidity - protocolLiquidity
+      totalSupply <=  positionLiquidity - protocolLiquidity
 
 
  ## reentrency
