@@ -38,7 +38,7 @@ library PoolVariables {
         int24 _tickUpper
     ) internal view returns (uint256, uint256) {
         (uint160 price, , , , , , ) = pool.slot0();
-        return (liquidity, liquidity * price);
+        return (liquidity, liquidity * 4);
     }
 
     /// @dev Wrapper around `LiquidityAmounts.getLiquidityForAmounts()`.
@@ -57,7 +57,9 @@ library PoolVariables {
     ) internal view returns (uint128) {
         (uint160 price, , , , , , ) = pool.slot0();
         //Get current price from the pool
-        return uint128(amount0 < amount1 / price ? amount0 : amount1 / price);
+        require (amount0 < 2**128);
+        require (amount1 < 2**128);
+        return uint128(amount0 < amount1 / uint256(4) ? amount0 : amount1 / uint256(4));
     }
 
     /// @dev Amounts of token0 and token1 held in contract position.
