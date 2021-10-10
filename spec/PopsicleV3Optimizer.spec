@@ -158,7 +158,7 @@ rule zeroCharacteristicOfWithdraw(uint256 shares, address to){
 invariant protocol_Greater_poolLiquidity()
     position_Liquidity() > protocol_Liquidity()
 
-invariant protocol_Greater_poolLiquidity_morePercise()
+invariant protocol_Greater_poolLiquidity_morePrecise()
     position_Liquidity() > protocol_Liquidity() ||
     position_Liquidity() == protocol_Liquidity() && totalSupply() == 0
 
