@@ -273,20 +273,7 @@ rule totalAssetsOfUser(address user, int24 tickLower, int24 tickUpper, method f)
 */
 
 
-// Calculated by liquidty
-// amountInUniswapPerShare should stay the same on withdraw, deposit, ERC20 functions 
-rule fixedSolvencyOfTheSystem(method f){
-    env e;
-	calldataarg args;
-    // require(f.select == withdraw || f.select == deposit || f.select == transfer || f.select == transferFrom)
-    
-    uint128 amountInUniswapPerShareBefore = amountInUniswapPerShare(e);
-    f(e, args);
-    uint128  amountInUniswapPerShareAfter = amountInUniswapPerShare(e);
-  //  if (f.selector == "withdraw" || f.selector == "deposit" || f.selector == "transfer" || f.selector == "transferFrom")
-        assert (amountInUniswapPerShareBefore == amountInUniswapPerShareAfter);
-  //  assert(true);
-}
+
 
 // if f is swap the before <= after
 /*
@@ -325,4 +312,18 @@ rule totalSupplyInvariant(method f) {
   assert totalSupply() == ghostSupply();
 }
 
+// Calculated by liquidty
+// amountInUniswapPerShare should stay the same on withdraw, deposit, ERC20 functions 
+rule fixedSolvencyOfTheSystem(method f){
+    env e;
+	calldataarg args;
+    require(totalSupply() == ghostSupply());
+    // require(f.select == withdraw || f.select == deposit || f.select == transfer || f.select == transferFrom)
+    
+    uint128 amountInUniswapPerShareBefore = amountInUniswapPerShare(e);
+    f(e, args);
+    uint128  amountInUniswapPerShareAfter = amountInUniswapPerShare(e);
+  //  if (f.selector == "withdraw" || f.selector == "deposit" || f.selector == "transfer" || f.selector == "transferFrom")
+        assert (amountInUniswapPerShareBefore == amountInUniswapPerShareAfter);
+}
 // invariant userAtMostTotalSupply(adress user) token.balanceOf(user) <= totalSupply()
