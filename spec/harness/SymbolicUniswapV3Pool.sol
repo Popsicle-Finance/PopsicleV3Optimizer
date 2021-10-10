@@ -301,12 +301,18 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
             uint128 tokensOwed1
         )
     {
-        return (
-            uint128(liquidity),
-            uint256(0),
-            uint256(0),
-            uint128(owed0),
-            uint128(owed1)
-        );
+        // return (
+        //     uint128(liquidity),
+        //     uint256(0),
+        //     uint256(0),
+        //     uint128(owed0),
+        //     uint128(owed1)
+        // );
+        require(liquidity < 2**128);
+        _liquidity = uint128(liquidity);
+        feeGrowthInside0LastX128 = 0;
+        feeGrowthInside1LastX128 = 0;
+        tokensOwed0 = owed0;
+        tokensOwed1 = owed1;
     }
 }
