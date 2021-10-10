@@ -31,12 +31,12 @@ contract PoolVariablesWrapper{
         return PoolVariables.liquidityForAmounts(pool, amount0, amount1, _tickLower, _tickUpper);
     }
 
-    function callPositionAmounts(int24 _tickLower, int24 _tickUpper)
-        external
-        view
-        returns (uint256 amount0, uint256 amount1){
-            (amount0 , amount1) =  PoolVariables.positionAmounts(pool, _tickLower, _tickUpper);
-    }
+    // function callPositionAmounts(int24 _tickLower, int24 _tickUpper)
+    //     external
+    //     view
+    //     returns (uint256 amount0, uint256 amount1){
+    //         (amount0 , amount1) =  PoolVariables.positionAmounts(pool, _tickLower, _tickUpper);
+    // }
 
     function callPositionLiquidity(int24 _tickLower, int24 _tickUpper)
         external

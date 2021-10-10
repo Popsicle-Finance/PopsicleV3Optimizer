@@ -47,6 +47,9 @@ methods {
     balanceOf(address) returns(uint256) envfree
     totalSupply() returns(uint256) envfree
 
+    //harness
+    position_Liquidity() returns(uint128) envfree
+    protocol_Liquidity() returns(uint128) envfree
 	// pool
 	/*
 	    mint(
@@ -152,6 +155,8 @@ rule zeroCharacteristicOfWithdraw(uint256 shares, address to){
 
 // }
 // additivity of withdraw 
+invariant protocol_Greater_poolLiquidity()
+    position_Liquidity() > protocol_Liquidity()
 
 rule additivityOfWithdraw(uint256 sharesA, uint256 sharesB, address to){
     env e;
