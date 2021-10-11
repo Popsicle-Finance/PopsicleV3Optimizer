@@ -145,24 +145,34 @@ rule zeroCharacteristicOfWithdraw(uint256 shares, address to){
 //   ## validity of total supply : Gadi
 //       totalSupply >=  positionLiquidity - protocolLiquidity
 
-// rule totalSupply_vs_positionAmounts(method f, address pool, uint256 tickLower, address tickUpper){}
-//    env e;
-//    uint256 totalsupplyBefore = totalSupply();
-//    uint256 _amount0;
-//    uint256 _amount1;
-//    uint256 amount0_;
-//    uint256 amount1_;
+rule totalSupply_vs_positionAmounts(method f){
+   env e;
+   uint256 totalSupplyBefore = totalSupply();
+   uint256 posLiquidityBefore = position_Liquidity();
 
-// }
+   calldataarg args;
+	f(e,args);
+
+   uint256 totalSupplyAfter = totalSupply();
+   uint256 posLiquidityAfter = position_Liquidity();
+
+    assert totalSupplyAfter < totalSupplyBefore =>
+            posLiquidityAfter < posLiquidityBefore;
+}
 // additivity of withdraw 
 invariant protocol_Greater_poolLiquidity()
-    position_Liquidity() > protocol_Liquidity()
+    position_Liquidity() > protocol_Liquidity() ||
+    totalSupply() == 0
 
-invariant protocol_Greater_poolLiquidity_morePercise()
+invariant protocol_Equal_poolLiquidity()
+    position_Liquidity() == protocol_Liquidity() <=>
+    totalSupply() == 0
+
+invariant protocol_Greater_poolLiquidity_morePrecise()
     position_Liquidity() > protocol_Liquidity() ||
     position_Liquidity() == protocol_Liquidity() && totalSupply() == 0
 
-rule temp (uint256 amount0Before, uint256 amount1Before){
+rule temp (uint256 amount0Before, uint256 amount1Before){ //same as above invariant
 env e;
 
 require (position_Liquidity() > protocol_Liquidity() ||
