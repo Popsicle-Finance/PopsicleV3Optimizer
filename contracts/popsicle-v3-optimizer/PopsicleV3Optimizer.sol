@@ -251,7 +251,8 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         
         (amount0, amount1) = pool.burnLiquidityShare(tickLower, tickUpper, totalSupply(), shares,  to, protocolLiquidity);
         
-        // Burn shares
+        require(amount0 > 0 || amount1 > 0, "ANI LO FRAYER");
+            // Burn shares
         _burn(msg.sender, shares);
         
         emit Withdraw(msg.sender, shares, amount0, amount1);
