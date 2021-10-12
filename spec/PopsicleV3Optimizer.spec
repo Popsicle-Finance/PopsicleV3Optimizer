@@ -318,11 +318,9 @@ amountInUniswapPerShare should increase.
 
 // invariant balanceAtMostTotalSupply(address user) token0.balanceOf(e, user) + token1.balanceOf(e, user) <= totalSupply(e)
 
-ghost ghostSupply() returns uint256;
-
-/* ghost ghostSupply(){
-    init_state axiom forall user. balanceOf(user) == 0;
-} */
+ghost sumAllBalances() returns uint256 {
+    init_state axiom sumAllBalances() == 0;
+}
 
 
 // the hook that updates the ghost function as follows
@@ -333,24 +331,25 @@ ghost ghostSupply() returns uint256;
  hook Sstore _balances[KEY address a] uint256 balance
 // the old value ↓ already there
     (uint256 old_balance) STORAGE {
-  havoc ghostSupply assuming ghostSupply@new() == ghostSupply@old() +
+  havoc sumAllBalances assuming sumAllBalances@new() == sumAllBalances@old() +
       (balance - old_balance);
 }
 
-rule totalSupplyInvariant(method f) {
-  require totalSupply() == ghostSupply();
-  calldataarg arg;
-  env e;
-  sinvoke f(e, arg);
-  assert totalSupply() == ghostSupply();
-}
+ hook Sload uint256 balance _balances[KEY address a] STORAGE {
+     require balance <= sumAllBalances();
+ }
+
+invariant totalSupplyIntegrity() 
+  totalSupply() == sumAllBalances()
+  
 
 // Calculated by liquidty
 // amountInUniswapPerShare should stay the same on withdraw, deposit, ERC20 functions 
 rule fixedSolvencyOfTheSystem(method f){
     env e;
 	calldataarg args;
-    require(totalSupply() == ghostSupply());
+    require(totalSupply() == sumAllBalances());
+    require(balanceOf(e.msg.sender) <= totalSupply() );
     // require(f.select == withdraw || f.select == deposit || f.select == transfer || f.select == transferFrom)
     
     uint128 amountInUniswapPerShareBefore = amountInUniswapPerShare(e);
@@ -360,3 +359,5 @@ rule fixedSolvencyOfTheSystem(method f){
         assert (amountInUniswapPerShareBefore == amountInUniswapPerShareAfter);
 }
 // invariant userAtMostTotalSupply(adress user) token.balanceOf(user) <= totalSupply()
+
+
