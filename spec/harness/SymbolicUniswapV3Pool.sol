@@ -39,7 +39,7 @@ interface IUniswapV3SwapCallback {
 
 contract SymbolicUniswapV3Pool is IUniswapV3Pool {
     uint256 public liquidity;
-    uint256 public constant ratio = 4;
+    uint256 public ratio;
     address public immutable override token0;
     address public immutable override token1;
     uint128 public owed0;
@@ -51,6 +51,7 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
     constructor(address _token0, address _token1) {
         token0 = _token0;
         token1 = _token1;
+        ratio = 4;
     }
 
     function balance0() private view returns (uint256) {
@@ -197,9 +198,9 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
         // do the transfers and collect payment
         amountToGet = amountToGet.mul(99) / 100;
         if (zeroForOne) {
-            require (amountToGet >= 0);
+            require(amountToGet >= 0);
             uint256 temp = uint256(amountToGet);
-            require (temp < 2**128);
+            require(temp < 2**128);
             owed1 = owed1.add128(uint128(uint256(amountToGet) / 100));
             IERC20(token1).transfer(recipient, uint256(amountToGet));
             uint256 balance0Before = balance0();
@@ -213,9 +214,9 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
                 "IIA"
             );
         } else {
-            require (amountToGet >= 0);
+            require(amountToGet >= 0);
             uint256 temp = uint256(amountToGet);
-            require (temp < 2**128);
+            require(temp < 2**128);
             owed0 = owed0.add128(uint128(uint256(amountToGet) / 100));
             IERC20(token0).transfer(recipient, uint256(amountToGet));
             uint256 balance1Before = balance1();
@@ -228,6 +229,13 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
                 balance1Before.add(uint256(amountToPay)) <= balance1(),
                 "IIA"
             );
+        }
+        if (ratio == 4) {
+            ratio = 2;
+        } else if (ratio == 2) {
+            ratio = 1;
+        } else {
+            ratio = 4;
         }
     }
 
@@ -290,7 +298,7 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
             bool unlocked
         )
     {
-        return (2 << 96, 13863, 0, 0, 0, 0, true);
+        return (uint160(ratio), 13863, 0, 0, 0, 0, true);
     }
 
     /// @notice Returns the information about a position by the position's key

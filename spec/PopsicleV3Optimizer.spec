@@ -12,16 +12,16 @@ methods {
     sqrt(uint256 x) => approximateSqrt(x)
 	mulDiv(uint256 a, uint256 b, uint256 denominator) => NONDET
 	mulDivRoundingUp(uint256 a, uint256 b, uint256 denominator) => NONDET
-	amountsForLiquidity(address pool,
-        uint128 liquidity,
-        int24 _tickLower,
-        int24 _tickUpper) => NONDET
-	liquidityForAmounts(address pool,
-        uint256 amount0,
-        uint256 amount1,
-        int24 _tickLower,
-        int24 _tickUpper) => NONDET
-	positionLiquidity(address pool, int24 _tickLower, int24 _tickUpper) => NONDET
+	// amountsForLiquidity(address pool,
+    //     uint128 liquidity,
+    //     int24 _tickLower,
+    //     int24 _tickUpper) => NONDET
+	// liquidityForAmounts(address pool,
+    //     uint256 amount0,
+    //     uint256 amount1,
+    //     int24 _tickLower,
+    //     int24 _tickUpper) => NONDET
+	// positionLiquidity(address pool, int24 _tickLower, int24 _tickUpper) => NONDET
 	getPositionTicks(address pool, uint256 amount0Desired, uint256 amount1Desired, int24 baseThreshold, int24 tickSpacing) => NONDET
 	amountsForTicks(address pool, uint256 amount0Desired, uint256 amount1Desired, int24 _tickLower, int24 _tickUpper) => NONDET
 	baseTicks(int24 currentTick, int24 baseThreshold, int24 tickSpacing) => NONDET
@@ -43,7 +43,7 @@ methods {
    // balanceOf(address) returns (uint256) => DISPATCHER(true)
 
     // WETH
-    withdraw(uint256, address) => DISPATCHER(true)
+    // withdraw(uint256, address) => DISPATCHER(true)
     balanceOf(address) returns(uint256) envfree
     totalSupply() returns(uint256) envfree
 
@@ -147,6 +147,7 @@ rule zeroCharacteristicOfWithdraw(uint256 shares, address to){
 
 rule totalSupply_vs_positionAmounts(method f){
    env e;
+
    uint256 totalSupplyBefore = totalSupply();
    uint256 posLiquidityBefore = position_Liquidity();
 
@@ -159,10 +160,19 @@ rule totalSupply_vs_positionAmounts(method f){
     assert totalSupplyAfter < totalSupplyBefore =>
             posLiquidityAfter < posLiquidityBefore;
 }
-// additivity of withdraw 
+invariant governance(env e)
+    balanceOf(governance(e)) == 0
+
+invariant pos_vs_protocol_liquidity()
+    position_Liquidity() >= protocol_Liquidity()
+
 invariant protocol_Greater_poolLiquidity()
-    position_Liquidity() > protocol_Liquidity() ||
-    totalSupply() == 0
+    position_Liquidity() >= protocol_Liquidity() <=>
+    totalSupply() >= 0
+
+invariant liquidity_XOR_totalSuply()
+    (position_Liquidity() > protocol_Liquidity() && !(totalSupply() == 0)) ||
+    (!(position_Liquidity() > protocol_Liquidity()) && totalSupply() == 0)
 
 invariant protocol_Equal_poolLiquidity()
     position_Liquidity() == protocol_Liquidity() <=>
@@ -183,6 +193,7 @@ require (position_Liquidity() > protocol_Liquidity() ||
     assert (position_Liquidity() > protocol_Liquidity() ||
     position_Liquidity() == protocol_Liquidity() && totalSupply() == 0);
 }
+// additivity of withdraw 
 rule additivityOfWithdraw(uint256 sharesA, uint256 sharesB, address to){
     env e;
 
