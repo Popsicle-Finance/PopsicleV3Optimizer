@@ -271,7 +271,7 @@ function userAmounts(uint256 amount0) returns uint256
 // we think this breaks on _compoundFees in case when the pool.mint returns values less than the current balance 
 
 rule totalAssetsOfUser(address user, int24 tickLower, int24 tickUpper, method f){
-    env e;
+    env e; 
 
    // maybe collectprotocolfees?
     _earnFees();
