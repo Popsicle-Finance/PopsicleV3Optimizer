@@ -177,32 +177,44 @@ invariant currentContract_Holding_Zero_Assets(env e)
 // 	f(e,args);
     
 // }
-invariant empty_pool_zero_totalSupply()
-    balance0() == 0 && balance1() == 0 => totalSupply() == 0
+    invariant empty_pool_state(env e)
+    ((pool.balance0(e) == 0 && pool.balance1(e) == 0 && totalFees0(e) == 0 && totalFees1(e) == 0) => totalSupply() == 0) && 
+    (pool.balance0(e) == 0 && pool.balance1(e) == 0 <=> position_Liquidity() == 0)
 
-invariant pos_vs_protocol_liquidity()
+    invariant empty_pool_zero_liquidity(env e)
+        pool.balance0(e) == 0 && pool.balance1(e) == 0 <=> position_Liquidity() == 0
+
+    rule empty_pool_empty_totalSupply(method f){
+        env e;
+        require (pool.balance0(e) == 0 && pool.balance1(e) == 0 ) && totalSupply() == 0;
+        calldataarg args;
+	    f(e,args);
+        assert (pool.balance0(e) == 0 && pool.balance1(e) == 0 ) => totalSupply() == 0;
+    }
+
+    invariant pos_vs_protocol_liquidity()
     position_Liquidity() >= protocol_Liquidity()
 
-invariant protocol_Greater_poolLiquidity()
+    invariant protocol_Greater_poolLiquidity()
     position_Liquidity() >= protocol_Liquidity() <=>
     totalSupply() >= 0
 
-invariant liquidity_XOR_totalSuply()
+    invariant liquidity_XOR_totalSuply()
     (position_Liquidity() > protocol_Liquidity() && !(totalSupply() == 0)) ||
     (!(position_Liquidity() > protocol_Liquidity()) && totalSupply() == 0)
 
-invariant protocol_Equal_poolLiquidity()
+    invariant protocol_Equal_poolLiquidity()
     position_Liquidity() == protocol_Liquidity() <=>
     totalSupply() == 0
 
-invariant protocol_Greater_poolLiquidity_morePrecise()
+    invariant protocol_Greater_poolLiquidity_morePrecise()
     position_Liquidity() > protocol_Liquidity() ||
     position_Liquidity() == protocol_Liquidity() && totalSupply() == 0
 
 rule temp (uint256 amount0Before, uint256 amount1Before){ //same as above invariant
 env e;
 
-require (position_Liquidity() > protocol_Liquidity() ||
+    require (position_Liquidity() > protocol_Liquidity() ||
     position_Liquidity() == protocol_Liquidity() && totalSupply() == 0);
 
     collectProtocolFees(e,amount0Before, amount1Before);
@@ -346,7 +358,7 @@ amountInUniswapPerShare should increase.
 
 // invariant balanceAtMostTotalSupply(address user) token0.balanceOf(e, user) + token1.balanceOf(e, user) <= totalSupply(e)
 
-ghost sumAllBalances() returns uint256 {
+    ghost sumAllBalances() returns uint256 {
     init_state axiom sumAllBalances() == 0;
 }
 
@@ -367,8 +379,8 @@ ghost sumAllBalances() returns uint256 {
      require balance <= sumAllBalances();
  }
 
-invariant totalSupplyIntegrity() 
-  totalSupply() == sumAllBalances()
+    invariant totalSupplyIntegrity() 
+    totalSupply() == sumAllBalances()
   
 
 // Calculated by liquidty
