@@ -177,7 +177,9 @@ invariant currentContract_Holding_Zero_Assets(env e)
 // 	f(e,args);
     
 // }
-    
+invariant empty_pool_zero_totalSupply()
+    balance0() == 0 && balance1() == 0 => totalSupply() == 0
+
 invariant pos_vs_protocol_liquidity()
     position_Liquidity() >= protocol_Liquidity()
 

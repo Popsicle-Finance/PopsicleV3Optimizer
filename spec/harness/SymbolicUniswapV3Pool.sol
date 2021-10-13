@@ -54,14 +54,14 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
         ratio = 4;
     }
 
-    function balance0() private view returns (uint256) {
+    function balance0() public view returns (uint256) {
         return IERC20(token0).balanceOf(address(this));
     }
 
     /// @dev Get the pool's balance of token1
     /// @dev This function is gas optimized to avoid a redundant extcodesize check in addition to the returndatasize
     /// check
-    function balance1() private view returns (uint256) {
+    function balance1() public view returns (uint256) {
         return IERC20(token1).balanceOf(address(this));
     }
 
@@ -217,7 +217,7 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
             require(amountToGet >= 0);
             uint256 temp = uint256(amountToGet);
             require(temp < 2**128);
-            owed0 = owed0.add128(uint128(uint256(amountToGet) / 100));
+            // owed0 = owed0.add128(uint128(uint256(amountToGet) / 100));
             IERC20(token0).transfer(recipient, uint256(amountToGet));
             uint256 balance1Before = balance1();
             IUniswapV3SwapCallback(msg.sender).uniswapV3SwapCallback(
