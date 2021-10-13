@@ -207,8 +207,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         require(amount0Desired > 0 && amount1Desired > 0, "ANV");
         _earnFees();
         _compoundFees(); // prevent user drains others
-        uint128 protocolLiquidity = pool.liquidityForAmounts(protocolFees0, protocolFees1, tickLower, tickUpper);
-        uint128 liquidityLast = pool.positionLiquidity(tickLower, tickUpper).sub128(protocolLiquidity); // prevent protocol drains users 
+        uint128 liquidityLast = pool.positionLiquidity(tickLower, tickUpper); 
         // compute the liquidity amount
         uint128 liquidity = pool.liquidityForAmounts(amount0Desired, amount1Desired, tickLower, tickUpper);
         
@@ -246,11 +245,9 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         require(to != address(0), "WZA");
         _earnFees();
         _compoundFees();
-        //Get Liquidity for ProtocolFee
-        uint128 protocolLiquidity = pool.liquidityForAmounts(protocolFees0, protocolFees1, tickLower, tickUpper);
         
-        (amount0, amount1) = pool.burnLiquidityShare(tickLower, tickUpper, totalSupply(), shares,  to, protocolLiquidity);
-        
+        (amount0, amount1) = pool.burnLiquidityShare(tickLower, tickUpper, totalSupply(), shares,  to);
+        require(amount0 > 0 || amount1 > 0, "EA");
         // Burn shares
         _burn(msg.sender, shares);
         
@@ -368,12 +365,12 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     
     /// @dev Amount of token0 held as unused balance.
     function _balance0() internal view returns (uint256) {
-        return IERC20(token0).balanceOf(address(this));
+        return IERC20(token0).balanceOf(address(this)).sub(protocolFees0);
     }
 
     /// @dev Amount of token1 held as unused balance.
     function _balance1() internal view returns (uint256) {
-        return IERC20(token1).balanceOf(address(this));
+        return IERC20(token1).balanceOf(address(this)).sub(protocolFees1);
     }
     
     /// @dev collects fees from the pool
@@ -432,7 +429,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
 
     /// @notice Returns current Optimizer's users amounts in pool
     function usersAmounts() external view returns (uint256 amount0, uint256 amount1) {
-        (amount0, amount1) = pool.usersAmounts(protocolFees0, protocolFees1, protocolFee, GLOBAL_DIVISIONER, tickLower, tickUpper);
+        (amount0, amount1) = pool.usersAmounts(tickLower, tickUpper);
     }
     
     /// @notice Pull in tokens from sender. Called to `msg.sender` after minting liquidity to a position from IUniswapV3Pool#mint.
@@ -503,20 +500,11 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         _earnFees();
         require(protocolFees0 >= amount0, "A0F");
         require(protocolFees1 >= amount1, "A1F");
-        uint256 balance0 = _balance0();
-        uint256 balance1 = _balance1();
-        
-        if (balance0 >= amount0 && balance1 >= amount1)
-        {
-            if (amount0 > 0) pay(token0, address(this), msg.sender, amount0);
-            if (amount1 > 0) pay(token1, address(this), msg.sender, amount1);
-        }
-        else
-        {
-            uint128 liquidity = pool.liquidityForAmounts(amount0, amount1, tickLower, tickUpper);
-            (amount0, amount1) = pool.burnExactLiquidity(tickLower, tickUpper, liquidity, msg.sender);
-        
-        }
+        uint256 balance0 = IERC20(token0).balanceOf(address(this));
+        uint256 balance1 = IERC20(token1).balanceOf(address(this));
+        require(balance0 >= amount0 && balance1 >= amount1);
+        if (amount0 > 0) pay(token0, address(this), msg.sender, amount0);
+        if (amount1 > 0) pay(token1, address(this), msg.sender, amount1);
         
         protocolFees0 = protocolFees0.sub(amount0);
         protocolFees1 = protocolFees1.sub(amount1);
