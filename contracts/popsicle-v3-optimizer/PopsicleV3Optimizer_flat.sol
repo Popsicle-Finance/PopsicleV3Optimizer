@@ -946,39 +946,6 @@ library PoolActions {
     }
 
     /**
-     * @notice Withdraws exact amount of liquidity
-     * @param pool Uniswap V3 pool
-     * @param tickLower The lower tick of the range
-     * @param tickUpper The upper tick of the range
-     * @param liquidity to burn
-     * @param to Recipient of amounts
-     * @return amount0 Amount of token0 withdrawed
-     * @return amount1 Amount of token1 withdrawed
-     */
-    function burnExactLiquidity(
-        IUniswapV3Pool pool,
-        int24 tickLower,
-        int24 tickUpper,
-        uint128 liquidity,
-        address to
-    ) internal returns (uint256 amount0, uint256 amount1) {
-        uint128 liquidityInPool = pool.positionLiquidity(tickLower, tickUpper);
-        require(liquidityInPool >= liquidity, "TML");
-        (amount0, amount1) = pool.burn(tickLower, tickUpper, liquidity);
-
-        if (amount0 > 0 || amount1 > 0) {
-            // collect liquidity share including earned fees
-            (amount0, amount1) = pool.collect(
-                to,
-                tickLower,
-                tickUpper,
-                amount0.toUint128(),
-                amount1.toUint128()
-            );
-        }
-    }
-
-    /**
      * @notice Withdraws all liquidity in a range from Uniswap pool
      * @param pool Uniswap V3 pool
      * @param tickLower The lower tick of the range
