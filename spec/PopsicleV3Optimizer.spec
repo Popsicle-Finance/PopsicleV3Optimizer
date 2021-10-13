@@ -160,9 +160,24 @@ rule totalSupply_vs_positionAmounts(method f){
     assert totalSupplyAfter < totalSupplyBefore =>
             posLiquidityAfter < posLiquidityBefore;
 }
+
 invariant governance(env e)
     balanceOf(governance(e)) == 0
 
+invariant currentContract_Holding_Zero_Assets(env e)
+    token0.balanceOf(e,currentContract) == 0 && token1.balanceOf(e,currentContract) == 0
+
+
+// rule verify_transfer_to_uniswap(method f){
+//     env e;
+//     uint256 _balance0 = token0.balanceOf(e,currentContract);
+//     uint256 _balance1 = token1.balanceOf(e,currentContract);
+    
+//     calldataarg args;
+// 	f(e,args);
+    
+// }
+    
 invariant pos_vs_protocol_liquidity()
     position_Liquidity() >= protocol_Liquidity()
 

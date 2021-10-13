@@ -153,13 +153,13 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
 
         require(amount0 < 2**128);
         require(amount1 < 2**128);
-        uint128 _owed0 = owed0;
-        uint128 _owed1 = owed1;
+        // uint128 _owed0 = owed0;
+        // uint128 _owed1 = owed1;
 
         owed0 = owed0.add128(uint128(amount0));
         owed1 = owed1.add128(uint128(amount1));
-        require(owed0 >= _owed0);
-        require(owed1 >= _owed1);
+        // require(owed0 >= _owed0);
+        // require(owed1 >= _owed1);
     }
 
     /// @notice Swap token0 for token1, or token1 for token0, rate does not change so limit amout to 100, and pool creator must tarnsfer to it huge amount of token0 and token1
@@ -196,12 +196,12 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
             )
             : amountSpecified;
         // do the transfers and collect payment
-        amountToGet = amountToGet.mul(99) / 100;
+        // amountToGet = amountToGet.mul(99) / 100;
         if (zeroForOne) {
             require(amountToGet >= 0);
             uint256 temp = uint256(amountToGet);
             require(temp < 2**128);
-            owed1 = owed1.add128(uint128(uint256(amountToGet) / 100));
+            // owed1 = owed1.add128(uint128(uint256(amountToGet) / 100));
             IERC20(token1).transfer(recipient, uint256(amountToGet));
             uint256 balance0Before = balance0();
             IUniswapV3SwapCallback(msg.sender).uniswapV3SwapCallback(
