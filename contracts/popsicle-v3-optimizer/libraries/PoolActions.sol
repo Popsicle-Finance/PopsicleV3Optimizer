@@ -20,7 +20,6 @@ library PoolActions {
      * @param totalSupply The amount of total shares in existence
      * @param share to burn
      * @param to Recipient of amounts
-     * @param protocolLiquidity liquidity that corresponds to protocol fees
      * @return amount0 Amount of token0 withdrawed
      * @return amount1 Amount of token1 withdrawed
      */
@@ -30,8 +29,7 @@ library PoolActions {
         int24 tickUpper,
         uint256 totalSupply,
         uint256 share,
-        address to,
-        uint128 protocolLiquidity
+        address to
     ) internal returns (uint256 amount0, uint256 amount1) {
         require(totalSupply > 0, "TS");
         uint128 liquidityInPool = pool.positionLiquidity(tickLower, tickUpper);
@@ -52,39 +50,6 @@ library PoolActions {
                     amount1.toUint128()
                 );
             }
-        }
-    }
-
-    /**
-     * @notice Withdraws exact amount of liquidity
-     * @param pool Uniswap V3 pool
-     * @param tickLower The lower tick of the range
-     * @param tickUpper The upper tick of the range
-     * @param liquidity to burn
-     * @param to Recipient of amounts
-     * @return amount0 Amount of token0 withdrawed
-     * @return amount1 Amount of token1 withdrawed
-     */
-    function burnExactLiquidity(
-        IUniswapV3Pool pool,
-        int24 tickLower,
-        int24 tickUpper,
-        uint128 liquidity,
-        address to
-    ) internal returns (uint256 amount0, uint256 amount1) {
-        uint128 liquidityInPool = pool.positionLiquidity(tickLower, tickUpper);
-        require(liquidityInPool >= liquidity, "TML");
-        (amount0, amount1) = pool.burn(tickLower, tickUpper, liquidity);
-
-        if (amount0 > 0 || amount1 > 0) {
-            // collect liquidity share including earned fees
-            (amount0, amount1) = pool.collect(
-                to,
-                tickLower,
-                tickUpper,
-                amount0.toUint128(),
-                amount1.toUint128()
-            );
         }
     }
 
