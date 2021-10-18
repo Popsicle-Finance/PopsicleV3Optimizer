@@ -120,6 +120,7 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
     ) external override returns (uint128 amount0, uint128 amount1) {
         if (amount0Requested >= owed0) {
             amount0 = owed0;
+            owed0 = 0;
         } else {
             owed0 = owed0.sub128(amount0Requested);
             amount0 = amount0Requested;
@@ -127,6 +128,7 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
         IERC20(token0).transfer(recipient, amount0);
         if (amount1Requested >= owed1) {
             amount1 = owed1;
+            owed1 = 0;
         } else {
             owed1 = owed1.sub128(amount1Requested);
             amount1 = amount1Requested;
