@@ -64,56 +64,26 @@ library PoolVariables {
 
     /// @dev Amounts of token0 and token1 held in contract position.
     /// @param pool Uniswap V3 pool
-    /// @param protocolFees0 protocol fees of token0
-    /// @param protocolFees1 protocol fees of token1
-    /// @param protocolFee protocol fee percentage
-    /// @param divisioner global divisioner
     /// @param _tickLower The lower tick of the range
     /// @param _tickUpper The upper tick of the range
     /// @return amount0 The amount of token0 held in position
     /// @return amount1 The amount of token1 held in position
-    function usersAmounts(
-        IUniswapV3Pool pool,
-        uint256 protocolFees0,
-        uint256 protocolFees1,
-        uint128 protocolFee,
-        uint128 divisioner,
-        int24 _tickLower,
-        int24 _tickUpper
-    ) internal view returns (uint256 amount0, uint256 amount1) {
+    function usersAmounts(IUniswapV3Pool pool, int24 _tickLower, int24 _tickUpper)
+        internal
+        view
+        returns (uint256 amount0, uint256 amount1)
+    {   
         //Compute position key
-        bytes32 positionKey = PositionKey.compute(
-            address(this),
-            _tickLower,
-            _tickUpper
-        );
+        bytes32 positionKey = PositionKey.compute(address(this), _tickLower, _tickUpper);
         //Get Position.Info for specified ticks
-        (uint128 liquidity, , , uint128 tokensOwed0, uint128 tokensOwed1) = pool
-            .positions(positionKey);
-
-        uint128 protocolLiquidity = liquidityForAmounts(
-            pool,
-            protocolFees0,
-            protocolFees1,
-            _tickLower,
-            _tickUpper
-        );
+        (uint128 liquidity, , , uint128 tokensOwed0, uint128 tokensOwed1) =
+            pool.positions(positionKey);
 
         // Calc amounts of token0 and token1 including fees
-        (amount0, amount1) = amountsForLiquidity(
-            pool,
-            liquidity.sub128(protocolLiquidity),
-            _tickLower,
-            _tickUpper
-        );
-        uint256 usersFee0 = tokensOwed0.sub128(
-            tokensOwed0.mul128(protocolFee) / divisioner
-        );
-        uint256 usersFee1 = tokensOwed1.sub128(
-            tokensOwed1.mul128(protocolFee) / divisioner
-        );
-        amount0 = amount0.add(usersFee0);
-        amount1 = amount1.add(usersFee1);
+        (amount0, amount1) = amountsForLiquidity(pool, liquidity, _tickLower, _tickUpper);
+        
+        amount0 = amount0.add(tokensOwed0);
+        amount1 = amount1.add(tokensOwed1);
     }
 
     /// @dev Amount of liquidity in contract position.
