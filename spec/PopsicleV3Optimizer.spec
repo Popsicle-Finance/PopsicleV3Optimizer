@@ -12,16 +12,16 @@ methods {
     sqrt(uint256 x) => approximateSqrt(x)
 	mulDiv(uint256 a, uint256 b, uint256 denominator) => NONDET
 	mulDivRoundingUp(uint256 a, uint256 b, uint256 denominator) => NONDET
-	amountsForLiquidity(address pool,
-        uint128 liquidity,
-        int24 _tickLower,
-        int24 _tickUpper) => NONDET
-	liquidityForAmounts(address pool,
-        uint256 amount0,
-        uint256 amount1,
-        int24 _tickLower,
-        int24 _tickUpper) => NONDET
-	positionLiquidity(address pool, int24 _tickLower, int24 _tickUpper) => NONDET
+	// amountsForLiquidity(address pool,
+    //     uint128 liquidity,
+    //     int24 _tickLower,
+    //     int24 _tickUpper) => NONDET
+	// liquidityForAmounts(address pool,
+    //     uint256 amount0,
+    //     uint256 amount1,
+    //     int24 _tickLower,
+    //     int24 _tickUpper) => NONDET
+	// positionLiquidity(address pool, int24 _tickLower, int24 _tickUpper) => NONDET
 	getPositionTicks(address pool, uint256 amount0Desired, uint256 amount1Desired, int24 baseThreshold, int24 tickSpacing) => NONDET
 	amountsForTicks(address pool, uint256 amount0Desired, uint256 amount1Desired, int24 _tickLower, int24 _tickUpper) => NONDET
 	baseTicks(int24 currentTick, int24 baseThreshold, int24 tickSpacing) => NONDET
@@ -43,7 +43,7 @@ methods {
    // balanceOf(address) returns (uint256) => DISPATCHER(true)
 
     // WETH
-    withdraw(uint256, address) => DISPATCHER(true)
+    // withdraw(uint256, address) => DISPATCHER(true)
     balanceOf(address) returns(uint256) envfree
     totalSupply() returns(uint256) envfree
 
@@ -147,6 +147,7 @@ rule zeroCharacteristicOfWithdraw(uint256 shares, address to){
 
 rule totalSupply_vs_positionAmounts(method f){
    env e;
+
    uint256 totalSupplyBefore = totalSupply();
    uint256 posLiquidityBefore = position_Liquidity();
 
@@ -159,23 +160,61 @@ rule totalSupply_vs_positionAmounts(method f){
     assert totalSupplyAfter < totalSupplyBefore =>
             posLiquidityAfter < posLiquidityBefore;
 }
-// additivity of withdraw 
-invariant protocol_Greater_poolLiquidity()
-    position_Liquidity() > protocol_Liquidity() ||
-    totalSupply() == 0
 
-invariant protocol_Equal_poolLiquidity()
+invariant governance(env e)
+    balanceOf(governance(e)) == 0
+
+invariant currentContract_Holding_Zero_Assets(env e)
+    token0.balanceOf(e,currentContract) == 0 && token1.balanceOf(e,currentContract) == 0
+
+
+// rule verify_transfer_to_uniswap(method f){
+//     env e;
+//     uint256 _balance0 = token0.balanceOf(e,currentContract);
+//     uint256 _balance1 = token1.balanceOf(e,currentContract);
+    
+//     calldataarg args;
+// 	f(e,args);
+    
+// }
+    invariant empty_pool_state(env e)
+    ((pool.balance0(e) == 0 && pool.balance1(e) == 0 && totalFees0(e) == 0 && totalFees1(e) == 0) => totalSupply() == 0) && 
+    (pool.balance0(e) == 0 && pool.balance1(e) == 0 <=> position_Liquidity() == 0)
+
+    invariant empty_pool_zero_liquidity(env e)
+        pool.balance0(e) == 0 && pool.balance1(e) == 0 <=> position_Liquidity() == 0
+
+    rule empty_pool_empty_totalSupply(method f){
+        env e;
+        require (pool.balance0(e) == 0 && pool.balance1(e) == 0 ) && totalSupply() == 0;
+        calldataarg args;
+	    f(e,args);
+        assert (pool.balance0(e) == 0 && pool.balance1(e) == 0 ) => totalSupply() == 0;
+    }
+
+    invariant pos_vs_protocol_liquidity()
+    position_Liquidity() >= protocol_Liquidity()
+
+    invariant protocol_Greater_poolLiquidity()
+    position_Liquidity() >= protocol_Liquidity() <=>
+    totalSupply() >= 0
+
+    invariant liquidity_XOR_totalSuply()
+    (position_Liquidity() > protocol_Liquidity() && !(totalSupply() == 0)) ||
+    (!(position_Liquidity() > protocol_Liquidity()) && totalSupply() == 0)
+
+    invariant protocol_Equal_poolLiquidity()
     position_Liquidity() == protocol_Liquidity() <=>
     totalSupply() == 0
 
-invariant protocol_Greater_poolLiquidity_morePrecise()
+    invariant protocol_Greater_poolLiquidity_morePrecise()
     position_Liquidity() > protocol_Liquidity() ||
     position_Liquidity() == protocol_Liquidity() && totalSupply() == 0
 
 rule temp (uint256 amount0Before, uint256 amount1Before){ //same as above invariant
 env e;
 
-require (position_Liquidity() > protocol_Liquidity() ||
+    require (position_Liquidity() > protocol_Liquidity() ||
     position_Liquidity() == protocol_Liquidity() && totalSupply() == 0);
 
     collectProtocolFees(e,amount0Before, amount1Before);
@@ -183,6 +222,7 @@ require (position_Liquidity() > protocol_Liquidity() ||
     assert (position_Liquidity() > protocol_Liquidity() ||
     position_Liquidity() == protocol_Liquidity() && totalSupply() == 0);
 }
+// additivity of withdraw 
 rule additivityOfWithdraw(uint256 sharesA, uint256 sharesB, address to){
     env e;
 
@@ -260,7 +300,7 @@ function userAmounts(uint256 amount0) returns uint256
 // we think this breaks on _compoundFees in case when the pool.mint returns values less than the current balance 
 
 rule totalAssetsOfUser(address user, int24 tickLower, int24 tickUpper, method f){
-    env e;
+    env e; 
 
    // maybe collectprotocolfees?
     _earnFees();
@@ -318,11 +358,9 @@ amountInUniswapPerShare should increase.
 
 // invariant balanceAtMostTotalSupply(address user) token0.balanceOf(e, user) + token1.balanceOf(e, user) <= totalSupply(e)
 
-ghost ghostSupply() returns uint256;
-
-/* ghost ghostSupply(){
-    init_state axiom forall user. balanceOf(user) == 0;
-} */
+    ghost sumAllBalances() returns uint256 {
+    init_state axiom sumAllBalances() == 0;
+}
 
 
 // the hook that updates the ghost function as follows
@@ -333,24 +371,25 @@ ghost ghostSupply() returns uint256;
  hook Sstore _balances[KEY address a] uint256 balance
 // the old value ↓ already there
     (uint256 old_balance) STORAGE {
-  havoc ghostSupply assuming ghostSupply@new() == ghostSupply@old() +
+  havoc sumAllBalances assuming sumAllBalances@new() == sumAllBalances@old() +
       (balance - old_balance);
 }
 
-rule totalSupplyInvariant(method f) {
-  require totalSupply() == ghostSupply();
-  calldataarg arg;
-  env e;
-  sinvoke f(e, arg);
-  assert totalSupply() == ghostSupply();
-}
+ hook Sload uint256 balance _balances[KEY address a] STORAGE {
+     require balance <= sumAllBalances();
+ }
+
+    invariant totalSupplyIntegrity() 
+    totalSupply() == sumAllBalances()
+  
 
 // Calculated by liquidty
 // amountInUniswapPerShare should stay the same on withdraw, deposit, ERC20 functions 
 rule fixedSolvencyOfTheSystem(method f){
     env e;
 	calldataarg args;
-    require(totalSupply() == ghostSupply());
+    require(totalSupply() == sumAllBalances());
+    require(balanceOf(e.msg.sender) <= totalSupply() );
     // require(f.select == withdraw || f.select == deposit || f.select == transfer || f.select == transferFrom)
     
     uint128 amountInUniswapPerShareBefore = amountInUniswapPerShare(e);
@@ -360,3 +399,5 @@ rule fixedSolvencyOfTheSystem(method f){
         assert (amountInUniswapPerShareBefore == amountInUniswapPerShareAfter);
 }
 // invariant userAtMostTotalSupply(adress user) token.balanceOf(user) <= totalSupply()
+
+
