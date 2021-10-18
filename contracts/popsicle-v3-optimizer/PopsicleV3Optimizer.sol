@@ -220,7 +220,8 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
             abi.encode(MintCallbackData({payer: msg.sender})));
         
         
-        shares = _calcShare(liquidity*MULTIPLIER, liquidityLast*MULTIPLIER);
+        shares = _calcShare(liquidity, liquidityLast);
+        // shares = _calcShare(liquidity*MULTIPLIER, liquidityLast*MULTIPLIER);
 
         _mint(to, shares);
         require(IOptimizerStrategy(strategy).maxTotalSupply() >= totalSupply(), "MTS");
@@ -403,6 +404,8 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         emit CollectFees(collect0, collect1, totalFees0, totalFees1);
     }
 
+uint256 public lastCompoundLiquidity;
+
     function _compoundFees() internal returns (uint256 amount0, uint256 amount1){
         uint256 balance0 = _balance0();
         uint256 balance1 = _balance1();
@@ -421,6 +424,9 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
                 tickUpper,
                 liquidity,
                 abi.encode(MintCallbackData({payer: address(this)})));
+
+            lastCompoundLiquidity = liquidity; //Gadi, to differientiate between compound and deposit
+
             emit CompoundFees(amount0, amount1);
         }
     }

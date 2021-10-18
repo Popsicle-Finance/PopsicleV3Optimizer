@@ -50,6 +50,15 @@ methods {
     //harness
     position_Liquidity() returns(uint128) envfree
     protocol_Liquidity() returns(uint128) envfree
+    governance() returns(address) envfree
+    token0.balanceOf(address) returns(uint256) envfree
+    token1.balanceOf(address) returns(uint256) envfree
+    pool.liquidity() returns (uint256) envfree
+    pool.balance0() returns (uint256) envfree
+    pool.balance1() returns (uint256) envfree
+    pool.owed0() returns (uint128) envfree
+    pool.owed1() returns (uint128) envfree
+    
 	// pool
 	/*
 	    mint(
@@ -104,31 +113,10 @@ ghost approximateSqrt(uint256) returns uint256;
 	(x == 0 => approximateSqrt(x) ==0) &&
 	( x > 0 => approximateSqrt(x) == x/4 +1 );
 }*/
-	
-/*
-rule sanity(method f) filtered { f -> !f.isView  && f.selector != rebalance().selector  }  {
-	env e;
-	calldataarg args;
-	withdraw(e,args);
-	assert(false);
-}
 
-
-rule sanityForView(method f) filtered { f -> f.isView }  {
-	env e;
-	calldataarg args;
-	f(e,args);
-	assert(false);
-}
-*/
-
-rule reentrency(method f) filtered { f -> !f.isView } {
-	env e;
-	calldataarg args;
-	require _status(e) == 2;
-	f@withrevert(e,args);
-	assert lastReverted; 
-}
+////////////////////////////////////////////
+/////////       rules
+/////////////////////////////////////////////
 
 rule zeroCharacteristicOfWithdraw(uint256 shares, address to){
     env e;
@@ -139,9 +127,27 @@ rule zeroCharacteristicOfWithdraw(uint256 shares, address to){
 
     assert (amount0 == 0 && amount1 == 0 => shares == 0);
 }
-//   ## montonicity : Gadi
-//       totalSupply decrease <=> positionAmounts(pool, tickLower, tickUpper) decrease
 
+rule more_shares_more_amounts_to_withdraw( address to){
+env e;
+    uint256 sharesX;
+    uint256 sharesY;
+    uint256 amount0X;
+    uint256 amount1X;
+    uint256 amount0Y;
+    uint256 amount1Y;
+
+    require sharesX > sharesY;// + 100000000000;
+    // require totalSupply() <= pool.liquidity();
+    storage init = lastStorage;
+    
+    amount0X,amount1X =  withdraw(e, sharesX, to);
+    amount0Y,amount1Y =  withdraw(e, sharesY, to) at init;
+    
+
+    assert amount0X > amount0Y || amount1X > amount1Y;
+
+}
 //   ## validity of total supply : Gadi
 //       totalSupply >=  positionLiquidity - protocolLiquidity
 
@@ -150,22 +156,34 @@ rule totalSupply_vs_positionAmounts(method f){
 
    uint256 totalSupplyBefore = totalSupply();
    uint256 posLiquidityBefore = position_Liquidity();
+   
+   require lastCompoundLiquidity(e) == 0;
 
    calldataarg args;
 	f(e,args);
 
    uint256 totalSupplyAfter = totalSupply();
-   uint256 posLiquidityAfter = position_Liquidity();
+   uint256 posLiquidityAfter = position_Liquidity();   
+   uint256 compoundAfter = lastCompoundLiquidity(e);
 
     assert totalSupplyAfter < totalSupplyBefore =>
-            posLiquidityAfter < posLiquidityBefore;
+            posLiquidityAfter - compoundAfter < posLiquidityBefore;
 }
 
-invariant governance(env e)
-    balanceOf(governance(e)) == 0
+// rule reentrency(method f) filtered { f -> !f.isView } {
+// 	env e;
+// 	calldataarg args;
+// 	require _status(e) == 2;
+// 	f@withrevert(e,args);
+// 	assert lastReverted; 
+// }
 
-invariant currentContract_Holding_Zero_Assets(env e)
-    token0.balanceOf(e,currentContract) == 0 && token1.balanceOf(e,currentContract) == 0
+
+invariant governance()
+    balanceOf(governance()) == 0
+
+// invariant currentContract_Holding_Zero_Assets()
+//     token0.balanceOf(currentContract) == 0 && token1.balanceOf(currentContract) == 0
 
 
 // rule verify_transfer_to_uniswap(method f){
@@ -177,19 +195,25 @@ invariant currentContract_Holding_Zero_Assets(env e)
 // 	f(e,args);
     
 // }
-    invariant empty_pool_state(env e)
-    ((pool.balance0(e) == 0 && pool.balance1(e) == 0 && totalFees0(e) == 0 && totalFees1(e) == 0) => totalSupply() == 0) && 
-    (pool.balance0(e) == 0 && pool.balance1(e) == 0 <=> position_Liquidity() == 0)
+    invariant empty_pool_state()
+    ((pool.balance0() == 0 && pool.balance1() == 0 && pool.liquidity() == 0) => totalSupply() == 0)
 
-    invariant empty_pool_zero_liquidity(env e)
-        pool.balance0(e) == 0 && pool.balance1(e) == 0 <=> position_Liquidity() == 0
+    invariant empty_pool_state_reverseImply()
+    (totalSupply() == 0 => (pool.balance0() == 0 && pool.balance1() == 0 && pool.liquidity() == 0) )
+
+    // invariant empty_pool_zero_liquidity(env e)
+    //     pool.balance0(e) == 0 && pool.balance1(e) == 0 <=> position_Liquidity() == 0
+    invariant balance_vs_liquidity() (pool.balance0() == 0 && pool.balance1() == 0 && pool.owed0() == 0 && pool.owed1() == 0) => pool.liquidity() == 0 filtered { f -> excludeCallback(f) }
+    // ((pool.balance0() == 0 && pool.balance1() == 0) => (pool.owed0() == 0 && pool.owed1() == 0))
+    
+    definition excludeCallback(method f) returns bool = f.selector != uniswapV3MintCallback(uint256,uint256,bytes).selector;
 
     rule empty_pool_empty_totalSupply(method f){
         env e;
-        require (pool.balance0(e) == 0 && pool.balance1(e) == 0 ) && totalSupply() == 0;
+        require (pool.balance0() == 0 && pool.balance1() == 0 ) => totalSupply() == 0;
         calldataarg args;
 	    f(e,args);
-        assert (pool.balance0(e) == 0 && pool.balance1(e) == 0 ) => totalSupply() == 0;
+        assert (pool.balance0() == 0 && pool.balance1() == 0 ) => totalSupply() == 0;
     }
 
     invariant pos_vs_protocol_liquidity()
@@ -199,9 +223,9 @@ invariant currentContract_Holding_Zero_Assets(env e)
     position_Liquidity() >= protocol_Liquidity() <=>
     totalSupply() >= 0
 
-    invariant liquidity_XOR_totalSuply()
-    (position_Liquidity() > protocol_Liquidity() && !(totalSupply() == 0)) ||
-    (!(position_Liquidity() > protocol_Liquidity()) && totalSupply() == 0)
+    // invariant liquidity_XOR_totalSuply()
+    // (position_Liquidity() > protocol_Liquidity() && !(totalSupply() == 0)) ||
+    // (!(position_Liquidity() > protocol_Liquidity()) && totalSupply() == 0)
 
     invariant protocol_Equal_poolLiquidity()
     position_Liquidity() == protocol_Liquidity() <=>
@@ -211,63 +235,41 @@ invariant currentContract_Holding_Zero_Assets(env e)
     position_Liquidity() > protocol_Liquidity() ||
     position_Liquidity() == protocol_Liquidity() && totalSupply() == 0
 
-rule temp (uint256 amount0Before, uint256 amount1Before){ //same as above invariant
-env e;
+// rule temp (uint256 amount0Before, uint256 amount1Before){ //same as above invariant
+// env e;
 
-    require (position_Liquidity() > protocol_Liquidity() ||
-    position_Liquidity() == protocol_Liquidity() && totalSupply() == 0);
+//     require (position_Liquidity() > protocol_Liquidity() ||
+//     position_Liquidity() == protocol_Liquidity() && totalSupply() == 0);
 
-    collectProtocolFees(e,amount0Before, amount1Before);
+//     collectProtocolFees(e,amount0Before, amount1Before);
 
-    assert (position_Liquidity() > protocol_Liquidity() ||
-    position_Liquidity() == protocol_Liquidity() && totalSupply() == 0);
-}
+//     assert (position_Liquidity() > protocol_Liquidity() ||
+//     position_Liquidity() == protocol_Liquidity() && totalSupply() == 0);
+// }
 // additivity of withdraw 
-rule additivityOfWithdraw(uint256 sharesA, uint256 sharesB, address to){
-    env e;
+// rule additivityOfWithdraw(uint256 sharesA, uint256 sharesB, address to){
+//     env e;
 
 
-    uint256 amount00;
-    uint256 amount01;
+//     uint256 amount00;
+//     uint256 amount01;
 
-    uint256 amount10;
-    uint256 amount11;
+//     uint256 amount10;
+//     uint256 amount11;
 
-    storage init = lastStorage;
+//     storage init = lastStorage;
 	
-    amount00, amount01 = withdraw(e, sharesA, to);
-    amount10, amount11 = withdraw(e, sharesB, to);
+//     amount00, amount01 = withdraw(e, sharesA, to);
+//     amount10, amount11 = withdraw(e, sharesB, to);
 
-    uint256 amount20;
-    uint256 amount21;
+//     uint256 amount20;
+//     uint256 amount21;
 
-    amount20, amount21 = withdraw(e, sharesA + sharesB, to) at init;
+//     amount20, amount21 = withdraw(e, sharesA + sharesB, to) at init;
 
-    assert((amount20 == amount00 + amount10) && (amount21 == amount01 + amount11));
-}
+//     assert((amount20 == amount00 + amount10) && (amount21 == amount01 + amount11));
+// }
         
-// (this broke but looks like fixed now)
-// withdrawing the same amount at the same block yields the same token amounts 
-// why do we need to withdraw the same amounts?
-// We only need the user2 to succeed withdrawing.            
-rule frontRunningOnWithdraw(uint256 shares1, address user1, uint256 shares2, address user2){
-    require (user1 != user2);
-    env e1;
-    env e2;
-    require (e1.msg.sender == user1 && e2.msg.sender == user2);
-    require e1.block.number == e2.block.number;
-
-    uint256 amount00;
-    uint256 amount01;
-    uint256 amount10;
-    uint256 amount11;
-
-    amount00, amount01 = withdraw(e1, shares1, user1);
-    amount10, amount11 = withdraw(e2, shares2, user2);
-    //assert(token0.balanceOf(user1)==token0.balanceOf(user2) && 
-    //       token1.balanceOf(user1)==token1.balanceOf(user2) );
-    assert(!lastReverted);
-}
 
 // after calling rebalance, token0.balanceOf(this)==0 and token1.balanceOf(this)==0
 /* rule zeroBalancesAfterRebalance(){
@@ -385,19 +387,19 @@ amountInUniswapPerShare should increase.
 
 // Calculated by liquidty
 // amountInUniswapPerShare should stay the same on withdraw, deposit, ERC20 functions 
-rule fixedSolvencyOfTheSystem(method f){
-    env e;
-	calldataarg args;
-    require(totalSupply() == sumAllBalances());
-    require(balanceOf(e.msg.sender) <= totalSupply() );
-    // require(f.select == withdraw || f.select == deposit || f.select == transfer || f.select == transferFrom)
+// rule fixedSolvencyOfTheSystem(method f){
+//     env e;
+// 	calldataarg args;
+//     require(totalSupply() == sumAllBalances());
+//     require(balanceOf(e.msg.sender) <= totalSupply() );
+//     // require(f.select == withdraw || f.select == deposit || f.select == transfer || f.select == transferFrom)
     
-    uint128 amountInUniswapPerShareBefore = amountInUniswapPerShare(e);
-    f(e, args);
-    uint128  amountInUniswapPerShareAfter = amountInUniswapPerShare(e);
-  //  if (f.selector == "withdraw" || f.selector == "deposit" || f.selector == "transfer" || f.selector == "transferFrom")
-        assert (amountInUniswapPerShareBefore == amountInUniswapPerShareAfter);
-}
+//     uint128 amountInUniswapPerShareBefore = amountInUniswapPerShare(e);
+//     f(e, args);
+//     uint128  amountInUniswapPerShareAfter = amountInUniswapPerShare(e);
+//   //  if (f.selector == "withdraw" || f.selector == "deposit" || f.selector == "transfer" || f.selector == "transferFrom")
+//         assert (amountInUniswapPerShareBefore == amountInUniswapPerShareAfter);
+// }
 // invariant userAtMostTotalSupply(adress user) token.balanceOf(user) <= totalSupply()
 
 

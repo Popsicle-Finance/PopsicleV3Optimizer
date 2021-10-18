@@ -127,7 +127,7 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
         if (amount1Requested >= owed1) {
             amount1 = owed1;
         } else {
-            owed1 = owed0.sub128(amount1Requested);
+            owed1 = owed1.sub128(amount1Requested);
             amount1 = amount1Requested;
         }
         IERC20(token1).transfer(recipient, amount1);
