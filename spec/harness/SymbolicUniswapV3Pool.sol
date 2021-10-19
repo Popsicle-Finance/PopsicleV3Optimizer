@@ -83,7 +83,7 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
         uint128 amount,
         bytes calldata data
     ) external override returns (uint256 amount0, uint256 amount1) {
-        require(rati == 1 || ratio == 2 || ratio == 4);
+        require(ratio == 1 || ratio == 2 || ratio == 4);
         liquidity = liquidity.add(amount);
         amount0 = amount;
         amount1 = uint256(amount).mul(ratio);
@@ -149,7 +149,7 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
         int24 tickUpper,
         uint128 amount
     ) external override returns (uint256 amount0, uint256 amount1) {
-        require(rati == 1 || ratio == 2 || ratio == 4);
+        require(ratio == 1 || ratio == 2 || ratio == 4);
         require(liquidity >= amount);
         amount0 = amount;
         amount1 = amount.mul(ratio);

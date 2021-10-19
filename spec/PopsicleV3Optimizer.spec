@@ -196,31 +196,51 @@ invariant governance()
     
 // }
     invariant empty_pool_state()
-    ((pool.balance0() == 0 && pool.balance1() == 0 && pool.liquidity() == 0) => totalSupply() == 0)
+    pool.liquidity() == 0 <=> totalSupply() == 0
+    filtered { f -> excludeCallback(f) }
 
     invariant empty_pool_state_reverseImply()
     (totalSupply() == 0 => (pool.balance0() == 0 && pool.balance1() == 0 && pool.liquidity() == 0) )
+    filtered { f -> excludeCallback(f) }
 
     // invariant empty_pool_zero_liquidity(env e)
     //     pool.balance0(e) == 0 && pool.balance1(e) == 0 <=> position_Liquidity() == 0
-    invariant balance_vs_liquidity() (pool.balance0() == 0 && pool.balance1() == 0 && pool.owed0() == 0 && pool.owed1() == 0) => pool.liquidity() == 0 filtered { f -> excludeCallback(f) }
-    // ((pool.balance0() == 0 && pool.balance1() == 0) => (pool.owed0() == 0 && pool.owed1() == 0))
-    
+    invariant balance_vs_liquidity()
+    (pool.balance0() == 0 && pool.balance1() == 0 && pool.owed0() == 0 && pool.owed1() == 0) <=> pool.liquidity() == 0 filtered { f -> excludeCallback(f) }
+    {
+    preserved {
+        requireInvariant empty_pool_state;
+              } 
+    }
+
+    invariant zero_totalSupply_zero_owed()
+    totalSupply() == 0 => (pool.owed0() == 0 && pool.owed1() == 0){ // filtered { f -> f.selector == withdraw(uint256,address).selector } 
+    preserved {
+        requireInvariant empty_pool_state;
+    } 
+    }
+
     definition excludeCallback(method f) returns bool = f.selector != uniswapV3MintCallback(uint256,uint256,bytes).selector;
 
-    rule empty_pool_empty_totalSupply(method f){
+    rule empty_pool_empty_totalSupply(method f) filtered { f -> excludeCallback(f) }{
         env e;
-        require (pool.balance0() == 0 && pool.balance1() == 0 ) => totalSupply() == 0;
+        require (pool.balance0() == 0 && pool.balance1() == 0 ) <=> totalSupply() == 0;
         calldataarg args;
 	    f(e,args);
-        assert (pool.balance0() == 0 && pool.balance1() == 0 ) => totalSupply() == 0;
+        assert (pool.balance0() == 0 && pool.balance1() == 0 ) <=> totalSupply() == 0;
     }
 
     invariant pos_vs_protocol_liquidity()
-    position_Liquidity() >= protocol_Liquidity()
+    pool.liquidity() >= protocol_Liquidity()
+    {
+    preserved {
+        requireInvariant empty_pool_state;
+        requireInvariant protocol_Equal_poolLiquidity;
+              } 
+    }
 
     invariant protocol_Greater_poolLiquidity()
-    position_Liquidity() >= protocol_Liquidity() <=>
+    pool.liquidity() >= protocol_Liquidity() <=>
     totalSupply() >= 0
 
     // invariant liquidity_XOR_totalSuply()
@@ -228,12 +248,12 @@ invariant governance()
     // (!(position_Liquidity() > protocol_Liquidity()) && totalSupply() == 0)
 
     invariant protocol_Equal_poolLiquidity()
-    position_Liquidity() == protocol_Liquidity() <=>
+    pool.liquidity() == protocol_Liquidity() <=>
     totalSupply() == 0
 
-    invariant protocol_Greater_poolLiquidity_morePrecise()
-    position_Liquidity() > protocol_Liquidity() ||
-    position_Liquidity() == protocol_Liquidity() && totalSupply() == 0
+    invariant protocol_Greater_poolLiquidity_morePercise()
+    pool.liquidity() > protocol_Liquidity() ||
+    (pool.liquidity() == protocol_Liquidity() && totalSupply() == 0)
 
 // rule temp (uint256 amount0Before, uint256 amount1Before){ //same as above invariant
 // env e;
