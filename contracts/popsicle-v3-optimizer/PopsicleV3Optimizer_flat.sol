@@ -2383,8 +2383,8 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
                 TickMath.getSqrtRatioAtTick(tickUpper),
                 _balance1()
             );
-        uint128 totaliquidity = pool.positionLiquidity(tickLower, tickUpper).add128(balance0Liquidity).add128(balance1Liquidity) ;
-        (amount0, amount1) = pool.burnLiquidityShare( tickLower, tickUpper, totalSupply(), shares,  to,  totaliquidity);
+        uint128 totalLiquidity = pool.positionLiquidity(tickLower, tickUpper).add128(balance0Liquidity).add128(balance1Liquidity) ;
+        (amount0, amount1) = pool.burnLiquidityShare( tickLower, tickUpper, totalSupply(), shares,  to,  totalLiquidity);
         require(amount0 > 0 || amount1 > 0, "EA");
         // Burn shares
         _burn(msg.sender, shares);
