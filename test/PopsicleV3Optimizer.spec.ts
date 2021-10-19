@@ -283,7 +283,7 @@ describe("PopsicleV3Optimizer", () => {
 
         it('should emit Rerange event', async () => {
             const action = contract.rebalance();
-            await expect(action).to.emit(contract, 'Rerange').withArgs(-8700,-240,364878,26010);
+            await expect(action).to.emit(contract, 'Rerange').withArgs(-8700,-180,367021,25991);
         })
 
         it('should call only operator', async () => {
