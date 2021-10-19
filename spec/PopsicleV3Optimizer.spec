@@ -51,6 +51,10 @@ methods {
     position_Liquidity() returns(uint128) envfree
     protocol_Liquidity() returns(uint128) envfree
     governance() returns(address) envfree
+    protocolFees0() returns (uint256) envfree
+    protocolFees1() returns (uint256) envfree
+    totalFees0() returns (uint256) envfree
+    totalFees1() returns (uint256) envfree
     token0.balanceOf(address) returns(uint256) envfree
     token1.balanceOf(address) returns(uint256) envfree
     pool.liquidity() returns (uint256) envfree
@@ -145,7 +149,7 @@ env e;
     amount0Y,amount1Y =  withdraw(e, sharesY, to) at init;
     
 
-    assert amount0X > amount0Y || amount1X > amount1Y;
+    assert amount0X >= amount0Y && amount1X >= amount1Y;
 
 }
 //   ## validity of total supply : Gadi
@@ -179,9 +183,21 @@ rule totalSupply_vs_positionAmounts(method f){
 // }
 
 
-invariant governance()
-    balanceOf(governance()) == 0
+    rule protocolFees_state(method f){
+        env e;
+        uint256 balanceGovBefore = token0.balanceOf(governance());
+        uint256 balanceProBefore = protocolFees0();
+        calldataarg args;
+	    f(e,args);
+        uint256 balanceGovAfter = token0.balanceOf(governance());
+        uint256 balanceProAfter = protocolFees0();
+        uint256 proChange = balanceProAfter > balanceProBefore ? balanceProAfter - balanceProBefore : balanceProBefore - balanceProAfter;
 
+        assert balanceGovAfter <= balanceGovBefore + proChange;
+    }
+    
+    invariant total_vs_protocol_Fees()
+    totalFees0() >= protocolFees0()    
 // invariant currentContract_Holding_Zero_Assets()
 //     token0.balanceOf(currentContract) == 0 && token1.balanceOf(currentContract) == 0
 

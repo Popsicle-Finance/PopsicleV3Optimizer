@@ -35,7 +35,7 @@ library PoolActions {
         uint128 liquidityInPool = pool.positionLiquidity(tickLower, tickUpper);
         uint256 liquidity = uint256(liquidityInPool).mul(share) / totalSupply;
 
-        require (liquidity * totalSupply == uint256(liquidityInPool).mul(share));
+        // require (liquidity * totalSupply == uint256(liquidityInPool).mul(share));
 
         if (liquidity > 0) {
             (amount0, amount1) = pool.burn(tickLower, tickUpper, liquidity.toUint128());
