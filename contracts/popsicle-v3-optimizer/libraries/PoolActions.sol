@@ -20,6 +20,7 @@ library PoolActions {
      * @param totalSupply The amount of total shares in existence
      * @param share to burn
      * @param to Recipient of amounts
+     * @param totalLiquidity total liquidity of the system
      * @return amount0 Amount of token0 withdrawed
      * @return amount1 Amount of token1 withdrawed
      */
@@ -29,12 +30,11 @@ library PoolActions {
         int24 tickUpper,
         uint256 totalSupply,
         uint256 share,
-        address to
+        address to,
+        uint128 totalLiquidity
     ) internal returns (uint256 amount0, uint256 amount1) {
         require(totalSupply > 0, "TS");
-        uint128 liquidityInPool = pool.positionLiquidity(tickLower, tickUpper);
-        uint256 liquidity = uint256(liquidityInPool).mul(share) / totalSupply;
-        
+        uint256 liquidity = uint256(totalLiquidity).mul(share) / totalSupply;
 
         if (liquidity > 0) {
             (amount0, amount1) = pool.burn(tickLower, tickUpper, liquidity.toUint128());
