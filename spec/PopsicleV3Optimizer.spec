@@ -183,12 +183,22 @@ rule totalSupply_vs_positionAmounts(method f){
 // }
 
 
-    rule protocolFees_state(method f){
+    rule protocolFees_state(method f, uint256 shares, address to){
         env e;
+        require governance() != currentContract;
+        require governance() != pool;
+        require pool.owed0() == 0;
+        requireInvariant  total_vs_protocol_Fees();
         uint256 balanceGovBefore = token0.balanceOf(governance());
         uint256 balanceProBefore = protocolFees0();
         calldataarg args;
-	    f(e,args);
+        if (f.selector==withdraw(uint256,address).selector){
+            require(to!=governance());
+            withdraw(e,shares, to);
+        }
+        else {
+	        f(e,args);
+        }
         uint256 balanceGovAfter = token0.balanceOf(governance());
         uint256 balanceProAfter = protocolFees0();
         uint256 proChange = balanceProAfter > balanceProBefore ? balanceProAfter - balanceProBefore : balanceProBefore - balanceProAfter;
@@ -197,7 +207,7 @@ rule totalSupply_vs_positionAmounts(method f){
     }
     
     invariant total_vs_protocol_Fees()
-    totalFees0() >= protocolFees0()    
+    totalFees0() > protocolFees0()    
 // invariant currentContract_Holding_Zero_Assets()
 //     token0.balanceOf(currentContract) == 0 && token1.balanceOf(currentContract) == 0
 
@@ -211,6 +221,9 @@ rule totalSupply_vs_positionAmounts(method f){
 // 	f(e,args);
     
 // }
+    invariant balance_vs_protocol_Liquidity()
+    totalSupply() == 0 => token0.balanceOf(currentContract) == protocolFees0()
+
     invariant empty_pool_state()
     pool.liquidity() == 0 <=> totalSupply() == 0
     filtered { f -> excludeCallback(f) }
