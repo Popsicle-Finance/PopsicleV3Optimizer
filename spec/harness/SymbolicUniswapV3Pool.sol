@@ -1,6 +1,7 @@
 import "../../contracts/popsicle-v3-optimizer/interfaces/IUniswapV3Pool.sol";
 import "../../contracts/popsicle-v3-optimizer/token/IERC20.sol";
 import "../../contracts/popsicle-v3-optimizer/libraries/LowGasSafeMath.sol";
+import "../../contracts/popsicle-v3-optimizer/libraries/PoolActions.sol";
 
 /// @title Callback for IUniswapV3PoolActions#mint
 /// @notice Any contract that calls IUniswapV3PoolActions#mint must implement this interface
@@ -47,6 +48,7 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
     using LowGasSafeMath for uint256;
     using LowGasSafeMath for uint128;
     using LowGasSafeMath for int256;
+    using PoolVariables for IUniswapV3Pool;
 
     constructor(address _token0, address _token1) {
         token0 = _token0;
@@ -63,6 +65,17 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
     /// check
     function balance1() public view returns (uint256) {
         return IERC20(token1).balanceOf(address(this));
+    }
+
+
+     function liquidityForAmounts(
+        IUniswapV3Pool pool,
+        uint256 amount0,
+        uint256 amount1,
+        int24 _tickLower,
+        int24 _tickUpper
+    ) public view returns (uint128) {
+        return pool.liquidityForAmounts(amount0, amount1, _tickLower, _tickUpper);
     }
 
     /// @notice Adds liquidity for the given recipient/tickLower/tickUpper position
@@ -157,13 +170,9 @@ contract SymbolicUniswapV3Pool is IUniswapV3Pool {
 
         require(amount0 < 2**128);
         require(amount1 < 2**128);
-        // uint128 _owed0 = owed0;
-        // uint128 _owed1 = owed1;
 
         owed0 = owed0.add128(uint128(amount0));
         owed1 = owed1.add128(uint128(amount1));
-        // require(owed0 >= _owed0);
-        // require(owed1 >= _owed1);
     }
 
     /// @notice Swap token0 for token1, or token1 for token0, rate does not change so limit amout to 100, and pool creator must tarnsfer to it huge amount of token0 and token1

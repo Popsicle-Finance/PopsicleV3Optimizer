@@ -237,6 +237,46 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     }
     
     /// @inheritdoc IPopsicleV3Optimizer
+    // function withdraw(
+    //     uint256 shares,
+    //     address to
+    // ) 
+    //     external
+    //     override
+    //     nonReentrant
+    //     checkDeviation
+    //     whenNotPaused
+    //     returns (
+    //         uint256 amount0,
+    //         uint256 amount1
+    //     )
+    // {
+    //     require(shares > 0, "S");
+    //     require(to != address(0), "WZA");
+    //     _earnFees();
+    //     _compoundFees();
+    //     uint128 balance0Liquidity = LiquidityAmounts.getLiquidityForAmount0(
+    //             TickMath.getSqrtRatioAtTick(tickLower),
+    //             TickMath.getSqrtRatioAtTick(tickUpper),
+    //             _balance0()
+    //         );
+    //     uint128 balance1Liquidity = LiquidityAmounts.getLiquidityForAmount1(
+    //             TickMath.getSqrtRatioAtTick(tickLower),
+    //             TickMath.getSqrtRatioAtTick(tickUpper),
+    //             _balance1()
+    //         );
+    //     uint128 totalLiquidity = pool.positionLiquidity(tickLower, tickUpper).add128(balance0Liquidity).add128(balance1Liquidity) ;
+    //     (amount0, amount1) = pool.burnLiquidityShare( tickLower, tickUpper, totalSupply(), shares,  to,  totalLiquidity);
+    //     require(amount0 > 0 || amount1 > 0, "EA");
+    //     //certora 
+    //     // require(!(shares == totalSupply()) || ((amount0 == IERC20(token0).balanceOf(address(pool)) && amount1 == IERC20(token1).balanceOf(address(pool))) ));
+    //     // require(shares == totalSupply() || ((amount0 < IERC20(token0).balanceOf(address(pool)) || amount1 < IERC20(token1).balanceOf(address(pool))) ));
+    //     // Burn shares
+    //     _burn(msg.sender, shares);
+        
+    //     emit Withdraw(msg.sender, shares, amount0, amount1);
+    // }
+    
     function withdraw(
         uint256 shares,
         address to
@@ -255,25 +295,15 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         require(to != address(0), "WZA");
         _earnFees();
         _compoundFees();
-        uint128 balance0Liquidity = LiquidityAmounts.getLiquidityForAmount0(
-                TickMath.getSqrtRatioAtTick(tickLower),
-                TickMath.getSqrtRatioAtTick(tickUpper),
-                _balance0()
-            );
-        uint128 balance1Liquidity = LiquidityAmounts.getLiquidityForAmount1(
-                TickMath.getSqrtRatioAtTick(tickLower),
-                TickMath.getSqrtRatioAtTick(tickUpper),
-                _balance1()
-            );
-        uint128 totalLiquidity = pool.positionLiquidity(tickLower, tickUpper).add128(balance0Liquidity).add128(balance1Liquidity) ;
-        (amount0, amount1) = pool.burnLiquidityShare( tickLower, tickUpper, totalSupply(), shares,  to,  totalLiquidity);
+        
+        (amount0, amount1) = pool.burnLiquidityShare(tickLower, tickUpper, totalSupply(), shares,  to);
         require(amount0 > 0 || amount1 > 0, "EA");
         // Burn shares
         _burn(msg.sender, shares);
         
         emit Withdraw(msg.sender, shares, amount0, amount1);
     }
-    
+
     /// @inheritdoc IPopsicleV3Optimizer
     function rerange() external override nonReentrant checkDeviation {
         require(_operatorApproved[msg.sender], "ONA");

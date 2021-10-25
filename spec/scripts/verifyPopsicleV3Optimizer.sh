@@ -3,7 +3,8 @@ certoraRun contracts/popsicle-v3-optimizer/PopsicleV3Optimizer.sol spec/harness/
 	--optimistic_loop \
 	--rule $1 \
 	--verify PopsicleV3Optimizer:spec/PopsicleV3Optimizer.spec \
-	--solc solc7.6 --staging shelly/forGadiPopsicle \
+	--solc solc7.6 \
+	--staging shelly/forGadiPopsicle \
 	--settings  -t=50,-enableEqualitySaturation=false,-copyLoopUnroll=4,-postProcessCounterExamples=true,-deleteSMTFile=false,-smt_hashingScheme=PlainInjectivity \
 	--javaArgs '"-Dtopic.function.builder"' \
 	--msg "PopsicleV3Optimizer : $1 - $2"
