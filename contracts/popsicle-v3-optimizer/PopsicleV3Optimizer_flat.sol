@@ -2107,11 +2107,13 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
 
     /// @notice Emitted when user adds liquidity
     /// @param sender The address that minted the liquidity
+    /// @param recipient The address that get shares
     /// @param share The amount of share of liquidity added by the user to position
     /// @param amount0 How much token0 was required for the added liquidity
     /// @param amount1 How much token1 was required for the added liquidity
     event Deposit(
         address indexed sender,
+        address indexed recipient,
         uint256 share,
         uint256 amount0,
         uint256 amount1
@@ -2119,11 +2121,13 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     
     /// @notice Emitted when user withdraws liquidity
     /// @param sender The address that minted the liquidity
+    /// @param recipient The address that get amounts
     /// @param shares of liquidity withdrawn by the user from the position
     /// @param amount0 How much token0 was required for the added liquidity
     /// @param amount1 How much token1 was required for the added liquidity
     event Withdraw(
         address indexed sender,
+        address indexed recipient,
         uint256 shares,
         uint256 amount0,
         uint256 amount1
@@ -2300,7 +2304,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
 
         _mint(to, shares);
         require(IOptimizerStrategy(strategy).maxTotalSupply() >= totalSupply(), "MTS");
-        emit Deposit(msg.sender, shares, amount0, amount1);
+        emit Deposit(msg.sender, to, shares, amount0, amount1);
     }
     
     /// @inheritdoc IPopsicleV3Optimizer
@@ -2331,7 +2335,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         // Burn shares
         _burn(msg.sender, shares);
 
-        emit Withdraw(msg.sender, shares, amount0, amount1);
+        emit Withdraw(msg.sender, to, shares, amount0, amount1);
     }
     
     /// @inheritdoc IPopsicleV3Optimizer
