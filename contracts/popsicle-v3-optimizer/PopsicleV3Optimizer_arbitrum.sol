@@ -121,7 +121,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     /// @inheritdoc IPopsicleV3Optimizer
     address public immutable override token1;
     // WETH address
-    address public constant weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address public constant weth = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
     // @inheritdoc IPopsicleV3Optimizer
     int24 public immutable override tickSpacing;
 
