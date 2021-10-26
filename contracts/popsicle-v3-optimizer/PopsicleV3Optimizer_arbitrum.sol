@@ -249,8 +249,8 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         _compoundFees();
         (amount0, amount1) = pool.burnLiquidityShare(tickLower, tickUpper, totalSupply(), shares,  to);
         require(amount0 > 0 || amount1 > 0, "EA");
-        uint256 imbalancedAmount0 = _balance0().mul(shares) / totalSupply();
-        uint256 imbalancedAmount1 = _balance1().mul(shares) / totalSupply();
+        uint256 imbalancedAmount0 = FullMath.mulDiv(_balance0(), shares, totalSupply());
+        uint256 imbalancedAmount1 = FullMath.mulDiv(_balance1(), shares, totalSupply());
         if (imbalancedAmount0 > 0) pay(token0, address(this), to, imbalancedAmount0);
         if (imbalancedAmount1 > 0) pay(token1, address(this), to, imbalancedAmount1);
         // Burn shares
