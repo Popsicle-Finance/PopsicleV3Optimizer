@@ -124,7 +124,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     /// @inheritdoc IPopsicleV3Optimizer
     address public immutable override token1;
     // WETH address
-    address public constant weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address public constant weth = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
     // @inheritdoc IPopsicleV3Optimizer
     int24 public immutable override tickSpacing;
 
@@ -239,46 +239,6 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     }
     
     /// @inheritdoc IPopsicleV3Optimizer
-    // function withdraw(
-    //     uint256 shares,
-    //     address to
-    // ) 
-    //     external
-    //     override
-    //     nonReentrant
-    //     checkDeviation
-    //     whenNotPaused
-    //     returns (
-    //         uint256 amount0,
-    //         uint256 amount1
-    //     )
-    // {
-    //     require(shares > 0, "S");
-    //     require(to != address(0), "WZA");
-    //     _earnFees();
-    //     _compoundFees();
-    //     uint128 balance0Liquidity = LiquidityAmounts.getLiquidityForAmount0(
-    //             TickMath.getSqrtRatioAtTick(tickLower),
-    //             TickMath.getSqrtRatioAtTick(tickUpper),
-    //             _balance0()
-    //         );
-    //     uint128 balance1Liquidity = LiquidityAmounts.getLiquidityForAmount1(
-    //             TickMath.getSqrtRatioAtTick(tickLower),
-    //             TickMath.getSqrtRatioAtTick(tickUpper),
-    //             _balance1()
-    //         );
-    //     uint128 totalLiquidity = pool.positionLiquidity(tickLower, tickUpper).add128(balance0Liquidity).add128(balance1Liquidity) ;
-    //     (amount0, amount1) = pool.burnLiquidityShare( tickLower, tickUpper, totalSupply(), shares,  to,  totalLiquidity);
-    //     require(amount0 > 0 || amount1 > 0, "EA");
-    //     //certora 
-    //     // require(!(shares == totalSupply()) || ((amount0 == IERC20(token0).balanceOf(address(pool)) && amount1 == IERC20(token1).balanceOf(address(pool))) ));
-    //     // require(shares == totalSupply() || ((amount0 < IERC20(token0).balanceOf(address(pool)) || amount1 < IERC20(token1).balanceOf(address(pool))) ));
-    //     // Burn shares
-    //     _burn(msg.sender, shares);
-        
-    //     emit Withdraw(msg.sender, shares, amount0, amount1);
-    // }
-    
     function withdraw(
         uint256 shares,
         address to
@@ -308,7 +268,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         
         emit Withdraw(msg.sender, to, shares, amount0, amount1);
     }
-
+    
     /// @inheritdoc IPopsicleV3Optimizer
     function rerange() external override nonReentrant checkDeviation {
         require(_operatorApproved[msg.sender], "ONA");
@@ -344,7 +304,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     /// @inheritdoc IPopsicleV3Optimizer
     function rebalance() external override nonReentrant checkDeviation {
         require(_operatorApproved[msg.sender], "ONA");
-    //    _earnFees();
+        _earnFees();
         //Burn all liquidity from pool to rerange for Optimizer's balances.
         pool.burnAllLiquidity(tickLower, tickUpper);
         
@@ -434,16 +394,14 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
             );
 
         // Calculate protocol's fees
-        uint256 earnedProtocolFees0 = collect0.mul(protocolFee).unsafeDiv(GLOBAL_DIVISIONER); //gadi ?
-        uint256 earnedProtocolFees1 = collect1.mul(protocolFee).unsafeDiv(GLOBAL_DIVISIONER); //gadi ?
+        uint256 earnedProtocolFees0 = collect0.mul(protocolFee).unsafeDiv(GLOBAL_DIVISIONER);
+        uint256 earnedProtocolFees1 = collect1.mul(protocolFee).unsafeDiv(GLOBAL_DIVISIONER);
         protocolFees0 = protocolFees0.add(earnedProtocolFees0);
         protocolFees1 = protocolFees1.add(earnedProtocolFees1);
         totalFees0 = totalFees0.add(collect0);
         totalFees1 = totalFees1.add(collect1);
         emit CollectFees(collect0, collect1, totalFees0, totalFees1);
     }
-
-uint256 public lastCompoundLiquidity;
 
     function _compoundFees() internal returns (uint256 amount0, uint256 amount1){
         uint256 balance0 = _balance0();
@@ -463,9 +421,6 @@ uint256 public lastCompoundLiquidity;
                 tickUpper,
                 liquidity,
                 abi.encode(MintCallbackData({payer: address(this)})));
-
-            lastCompoundLiquidity = liquidity; //Gadi, to differientiate between compound and deposit
-
             emit CompoundFees(amount0, amount1);
         }
     }
@@ -522,7 +477,6 @@ uint256 public lastCompoundLiquidity;
     /// @param payer The entity that must pay
     /// @param recipient The entity that will receive payment
     /// @param value The amount to pay
-    /*
     function pay(
         address token,
         address payer,
@@ -535,30 +489,6 @@ uint256 public lastCompoundLiquidity;
         } else {
             // pull payment
             TransferHelper.safeTransferFrom(token, payer, recipient, value);
-        }
-    } */
-
-    function pay(
-        address token,
-        address payer,
-        address recipient,
-        uint256 value
-    ) internal {
-        if (token == weth && address(this).balance >= value) {
-            // pay with WETH9
-            IWETH9(weth).deposit{value: value}(); // wrap only what is needed to pay
-            IWETH9(weth).transfer(recipient, value);
-        } else if (payer == address(this)) {
-            // pay with tokens already in the contract (for the exact input multihop case)
-            //TransferHelper.safeTransfer(token, recipient, value);
-            //certora change
-            IERC20(token).transfer(recipient, value);
-
-        } else {
-            // pull payment
-            //TransferHelper.safeTransferFrom(token, payer, recipient, value);
-            //certora change
-            IERC20(token).transferFrom(payer, recipient, value);
         }
     }
     
@@ -588,7 +518,7 @@ uint256 public lastCompoundLiquidity;
     // This mitigates price manipulation during rebalance and also prevents placing orders
     // when it's too volatile.
     modifier checkDeviation() {
-    //    pool.checkDeviation(IOptimizerStrategy(strategy).maxTwapDeviation(), IOptimizerStrategy(strategy).twapDuration());
+        pool.checkDeviation(IOptimizerStrategy(strategy).maxTwapDeviation(), IOptimizerStrategy(strategy).twapDuration());
         _;
     }
 
@@ -674,22 +604,4 @@ uint256 public lastCompoundLiquidity;
     function unpause() external onlyGovernance whenPaused {
         _paused = false;
     }
-
-    // certora helpers
-    function amountInUniswapPerShare() public  returns (uint128){
-        uint128 protocolLiquidity = pool.liquidityForAmounts(protocolFees0, protocolFees1, tickLower, tickUpper);
-        uint128 liquidity = pool.positionLiquidity(tickLower, tickUpper);
-        uint128 usersLiquidity = liquidity - protocolLiquidity;
-        uint128 amountInUniswapPerShare = usersLiquidity / (uint128) (totalSupply());
-        return amountInUniswapPerShare;
-    }
-    function protocol_Liquidity() public returns (uint128){
-        uint128 protocolLiquidity = pool.liquidityForAmounts(protocolFees0, protocolFees1, tickLower, tickUpper);
-        return protocolLiquidity;
-    }
-    function position_Liquidity() public returns (uint128){
-        uint128 liquidity = pool.positionLiquidity(tickLower, tickUpper);
-        return liquidity;
-    }
 }
-
