@@ -8,7 +8,6 @@ import "./utils/ReentrancyGuard.sol";
 import './libraries/TransferHelper.sol';
 import "./libraries/SqrtPriceMath.sol";
 import "./base/ERC20Permit.sol";
-import "./libraries/Babylonian.sol";
 import "./libraries/PoolActions.sol";
 import "./interfaces/IOptimizerStrategy.sol";
 import "./interfaces/IPopsicleV3Optimizer.sol";
@@ -219,8 +218,15 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
             abi.encode(MintCallbackData({payer: msg.sender})));
         
         require(amount0 > 0 && amount1 > 0, "ANV");
-        uint256 shares0 = FullMath.mulDiv(amount0, totalSupply(), usersAmount0);
-        uint256 shares1 = FullMath.mulDiv(amount1, totalSupply(), usersAmount1);
+        uint256 shares0 = 
+            totalSupply() == 0 
+            ? LiquidityAmounts.getLiquidityForAmount0(TickMath.getSqrtRatioAtTick(tickLower), TickMath.getSqrtRatioAtTick(tickUpper), amount0) 
+            : FullMath.mulDiv(amount0, totalSupply(), usersAmount0);
+        
+        uint256 shares1 = 
+            totalSupply() == 0 
+            ? LiquidityAmounts.getLiquidityForAmount1(TickMath.getSqrtRatioAtTick(tickLower), TickMath.getSqrtRatioAtTick(tickUpper), amount1) 
+            : FullMath.mulDiv(amount1, totalSupply(), usersAmount1);
         shares =  shares0 < shares1 ? shares0 : shares1;
 
         _mint(to, shares);
