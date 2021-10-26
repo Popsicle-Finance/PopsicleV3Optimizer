@@ -224,12 +224,12 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         require(amount0 > 0 && amount1 > 0, "ANV");
         uint256 shares0 = 
             totalSupply() == 0 
-            ? LiquidityAmounts.getLiquidityForAmount0(TickMath.getSqrtRatioAtTick(tickLower), TickMath.getSqrtRatioAtTick(tickUpper), amount0) 
+            ? liquidity
             : FullMath.mulDiv(amount0, totalSupply(), usersAmount0);
         
         uint256 shares1 = 
             totalSupply() == 0 
-            ? LiquidityAmounts.getLiquidityForAmount1(TickMath.getSqrtRatioAtTick(tickLower), TickMath.getSqrtRatioAtTick(tickUpper), amount1) 
+            ? liquidity
             : FullMath.mulDiv(amount1, totalSupply(), usersAmount1);
         shares =  shares0 < shares1 ? shares0 : shares1;
 
