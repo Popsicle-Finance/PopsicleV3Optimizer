@@ -2193,12 +2193,13 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     /// @inheritdoc IPopsicleV3Optimizer
     address public immutable override token1;
     // WETH address
-    address public constant weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address public constant weth = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
     // @inheritdoc IPopsicleV3Optimizer
     int24 public immutable override tickSpacing;
+
     uint24 constant GLOBAL_DIVISIONER = 1e6; // for basis point (0.0001%)
     //The protocol's fee in hundredths of a bip, i.e. 1e-6
-    uint24 constant protocolFee = 2 * 1e5; //20%
+    uint24 constant protocolFee = 2 * 1e5; //20% 
 
     mapping (address => bool) private _operatorApproved;
 
@@ -2236,7 +2237,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
      constructor(
         address _pool,
         address _strategy
-    ) ERC20("Popsicle LP V3 USDT/WETH", "PLP") ERC20Permit("Popsicle LP V3 USDT/WETH") {
+    ) ERC20("Popsicle LP V3 WETH/USDT", "PLP") ERC20Permit("Popsicle LP V3 WETH/USDT") {
         pool = IUniswapV3Pool(_pool);
         strategy = _strategy;
         token0 = pool.token0();
@@ -2277,9 +2278,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     {
         _earnFees();
         _compoundFees(); // prevent user drains others
-        
         (uint256 usersAmount0, uint256 usersAmount1) = usersAmounts();
-        
         // compute the liquidity amount
         uint128 liquidity = pool.liquidityForAmounts(amount0Desired, amount1Desired, tickLower, tickUpper);
         
@@ -2293,7 +2292,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         require(amount0 > 0 && amount1 > 0, "ANV");
         uint256 shares0 = 
             totalSupply() == 0 
-            ? liquidity
+            ? liquidity 
             : FullMath.mulDiv(amount0, totalSupply(), usersAmount0);
         
         uint256 shares1 = 
