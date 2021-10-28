@@ -212,8 +212,8 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         (uint256 usersAmount0, uint256 usersAmount1) = pool.usersAmounts(tickLower, tickUpper);
         uint160 sqrtRatioAX = TickMath.getSqrtRatioAtTick(tickLower);
         uint160 sqrtRatioBX = TickMath.getSqrtRatioAtTick(tickUpper);
-        uint128 balance0Liquidity = LiquidityAmounts.getLiquidityForAmount0(sqrtRatioAX, sqrtRatioBX, usersAmount0.add(_balance0()));
-        uint128 balance1Liquidity = LiquidityAmounts.getLiquidityForAmount1(sqrtRatioAX, sqrtRatioBX, usersAmount1.add(_balance1()));
+        uint128 balance0Liquidity = LiquidityAmounts.getLiquidityForAmount0(sqrtRatioAX, sqrtRatioBX, usersAmount0.add(_balance0().unsafeDiv(2)));
+        uint128 balance1Liquidity = LiquidityAmounts.getLiquidityForAmount1(sqrtRatioAX, sqrtRatioBX, usersAmount1.add(_balance1().unsafeDiv(2)));
         uint128 liquidityLast = balance0Liquidity.add128(balance1Liquidity);
         
         // compute the liquidity amount

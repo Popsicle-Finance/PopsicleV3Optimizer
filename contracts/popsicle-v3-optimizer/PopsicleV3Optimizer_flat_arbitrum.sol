@@ -2279,8 +2279,12 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         _earnFees();
         _compoundFees(); // prevent user drains others
         (uint256 usersAmount0, uint256 usersAmount1) = pool.usersAmounts(tickLower, tickUpper);
-        usersAmount0 = usersAmount0.add(_balance0().unsafeDiv(2)); // prevent draining
-        usersAmount1 = usersAmount1.add(_balance1().unsafeDiv(2));
+        uint160 sqrtRatioAX = TickMath.getSqrtRatioAtTick(tickLower);
+        uint160 sqrtRatioBX = TickMath.getSqrtRatioAtTick(tickUpper);
+        uint128 balance0Liquidity = LiquidityAmounts.getLiquidityForAmount0(sqrtRatioAX, sqrtRatioBX, usersAmount0.add(_balance0().unsafeDiv(2)));
+        uint128 balance1Liquidity = LiquidityAmounts.getLiquidityForAmount1(sqrtRatioAX, sqrtRatioBX, usersAmount1.add(_balance1().unsafeDiv(2)));
+        uint128 liquidityLast = balance0Liquidity.add128(balance1Liquidity);
+        
         // compute the liquidity amount
         uint128 liquidity = pool.liquidityForAmounts(amount0Desired, amount1Desired, tickLower, tickUpper);
         
@@ -2292,16 +2296,8 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
             abi.encode(MintCallbackData({payer: msg.sender})));
         
         require(amount0 > 0 && amount1 > 0, "ANV");
-        uint256 shares0 = 
-            totalSupply() == 0 
-            ? liquidity 
-            : FullMath.mulDiv(amount0, totalSupply(), usersAmount0);
-        
-        uint256 shares1 = 
-            totalSupply() == 0 
-            ? liquidity
-            : FullMath.mulDiv(amount1, totalSupply(), usersAmount1);
-        shares =  shares0 < shares1 ? shares0 : shares1;
+        liquidity = LiquidityAmounts.getLiquidityForAmount0(sqrtRatioAX, sqrtRatioBX, amount0).add128(LiquidityAmounts.getLiquidityForAmount1(sqrtRatioAX, sqrtRatioBX, amount1));
+        shares = totalSupply() == 0 ? liquidity : liquidity.mul(totalSupply()).unsafeDiv(liquidityLast);
 
         _mint(to, shares);
         require(IOptimizerStrategy(strategy).maxTotalSupply() >= totalSupply(), "MTS");
