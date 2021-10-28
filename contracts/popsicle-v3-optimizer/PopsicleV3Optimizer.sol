@@ -209,7 +209,9 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     {
         _earnFees();
         _compoundFees(); // prevent user drains others
-        (uint256 usersAmount0, uint256 usersAmount1) = usersAmounts();
+        (uint256 usersAmount0, uint256 usersAmount1) = pool.usersAmounts(tickLower, tickUpper);
+        usersAmount0 = usersAmount0.add(_balance0().unsafeDiv(2)); // prevent draining
+        usersAmount1 = usersAmount1.add(_balance1().unsafeDiv(2));
         
         // compute the liquidity amount
         uint128 liquidity = pool.liquidityForAmounts(amount0Desired, amount1Desired, tickLower, tickUpper);
