@@ -2280,8 +2280,8 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         (uint256 usersAmount0, uint256 usersAmount1) = pool.usersAmounts(tickLower, tickUpper);
         uint160 sqrtRatioAX = TickMath.getSqrtRatioAtTick(tickLower);
         uint160 sqrtRatioBX = TickMath.getSqrtRatioAtTick(tickUpper);
-        uint128 balance0Liquidity = LiquidityAmounts.getLiquidityForAmount0(sqrtRatioAX, sqrtRatioBX, usersAmount0.add(_balance0().unsafeDiv(2)));
-        uint128 balance1Liquidity = LiquidityAmounts.getLiquidityForAmount1(sqrtRatioAX, sqrtRatioBX, usersAmount1.add(_balance1().unsafeDiv(2)));
+        uint128 balance0Liquidity = LiquidityAmounts.getLiquidityForAmount0(sqrtRatioAX, sqrtRatioBX, usersAmount0);
+        uint128 balance1Liquidity = LiquidityAmounts.getLiquidityForAmount1(sqrtRatioAX, sqrtRatioBX, usersAmount1);
         uint128 liquidityLast = balance0Liquidity.add128(balance1Liquidity);
         
         // compute the liquidity amount
@@ -2324,10 +2324,10 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         _compoundFees();
         (amount0, amount1) = pool.burnLiquidityShare(tickLower, tickUpper, totalSupply(), shares,  to);
         require(amount0 > 0 || amount1 > 0, "EA");
-        uint256 imbalancedAmount0 = FullMath.mulDiv(_balance0(), shares, totalSupply());
-        uint256 imbalancedAmount1 = FullMath.mulDiv(_balance1(), shares, totalSupply());
-        if (imbalancedAmount0 > 0) pay(token0, address(this), to, imbalancedAmount0);
-        if (imbalancedAmount1 > 0) pay(token1, address(this), to, imbalancedAmount1);
+        // uint256 imbalancedAmount0 = FullMath.mulDiv(_balance0(), shares, totalSupply());
+        // uint256 imbalancedAmount1 = FullMath.mulDiv(_balance1(), shares, totalSupply());
+        // if (imbalancedAmount0 > 0) pay(token0, address(this), to, imbalancedAmount0);
+        // if (imbalancedAmount1 > 0) pay(token1, address(this), to, imbalancedAmount1);
         // Burn shares
         _burn(msg.sender, shares);
 
