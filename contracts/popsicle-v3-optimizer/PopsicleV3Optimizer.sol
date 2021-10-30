@@ -136,6 +136,8 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
 
     // @inheritdoc IPopsicleV3Optimizer
     IUniswapV3Pool public override pool;
+    uint256 reserve0;
+    uint256 reserve1;
     // Accrued protocol fees in terms of token0
     uint256 public protocolFees0;
     // Accrued protocol fees in terms of token1
@@ -212,8 +214,8 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         (uint256 usersAmount0, uint256 usersAmount1) = pool.usersAmounts(tickLower, tickUpper);
         uint160 sqrtRatioAX = TickMath.getSqrtRatioAtTick(tickLower);
         uint160 sqrtRatioBX = TickMath.getSqrtRatioAtTick(tickUpper);
-        uint128 balance0Liquidity = LiquidityAmounts.getLiquidityForAmount0(sqrtRatioAX, sqrtRatioBX, usersAmount0.add(_balance0().unsafeDiv(2)));
-        uint128 balance1Liquidity = LiquidityAmounts.getLiquidityForAmount1(sqrtRatioAX, sqrtRatioBX, usersAmount1.add(_balance1().unsafeDiv(2)));
+        uint128 balance0Liquidity = LiquidityAmounts.getLiquidityForAmount0(sqrtRatioAX, sqrtRatioBX, usersAmount0.add(reserve0));
+        uint128 balance1Liquidity = LiquidityAmounts.getLiquidityForAmount1(sqrtRatioAX, sqrtRatioBX, usersAmount1.add(reserve1));
         uint128 liquidityLast = balance0Liquidity.add128(balance1Liquidity);
         
         // compute the liquidity amount
@@ -228,7 +230,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         
         require(amount0 > 0 && amount1 > 0, "ANV");
         liquidity = LiquidityAmounts.getLiquidityForAmount0(sqrtRatioAX, sqrtRatioBX, amount0).add128(LiquidityAmounts.getLiquidityForAmount1(sqrtRatioAX, sqrtRatioBX, amount1));
-        shares = totalSupply() == 0 ? liquidity : liquidity.mul(totalSupply()).unsafeDiv(liquidityLast);
+        shares = totalSupply() == 0 ? liquidity : FullMath.mulDiv(liquidity, totalSupply(), liquidityLast);
 
         _mint(to, shares);
         require(IOptimizerStrategy(strategy).maxTotalSupply() >= totalSupply(), "MTS");
@@ -256,10 +258,16 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         _compoundFees();
         (amount0, amount1) = pool.burnLiquidityShare(tickLower, tickUpper, totalSupply(), shares,  to);
         require(amount0 > 0 || amount1 > 0, "EA");
-        uint256 imbalancedAmount0 = FullMath.mulDiv(_balance0(), shares, totalSupply());
-        uint256 imbalancedAmount1 = FullMath.mulDiv(_balance1(), shares, totalSupply());
-        if (imbalancedAmount0 > 0) pay(token0, address(this), to, imbalancedAmount0);
-        if (imbalancedAmount1 > 0) pay(token1, address(this), to, imbalancedAmount1);
+        uint256 imbalancedAmount0 = FullMath.mulDiv(reserve0, shares, totalSupply());
+        uint256 imbalancedAmount1 = FullMath.mulDiv(reserve1, shares, totalSupply());
+        if (imbalancedAmount0 > 0) 
+            {pay(token0, address(this), to, imbalancedAmount0);
+            reserve0 = reserve0.sub(imbalancedAmount0);
+        }
+        if (imbalancedAmount1 > 0) {
+            pay(token1, address(this), to, imbalancedAmount1);
+            reserve1 = reserve1.sub(imbalancedAmount1);
+        }
         // Burn shares
         _burn(msg.sender, shares);
         
@@ -295,6 +303,8 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
             liquidity,
             abi.encode(MintCallbackData({payer: address(this)})));
 
+        reserve0 = _balance0();
+        reserve1 = _balance1();
         emit Rerange(tickLower, tickUpper, amount0, amount1);
     }
 
@@ -361,6 +371,9 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
             cache.liquidity,
             abi.encode(MintCallbackData({payer: address(this)})));
 
+        reserve0 = _balance0();
+        reserve1 = _balance1();
+
         emit Rerange(tickLower, tickUpper, cache.amount0, cache.amount1);
     }
     
@@ -378,6 +391,10 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     function _earnFees() internal {
         uint liquidity = pool.positionLiquidity(tickLower, tickUpper);
         if (liquidity == 0) return; // we can't poke when liquidity is zero
+        //checkReserves
+        if (_balance0() > reserve0) pay(token0, address(this), governance, _balance0().sub(reserve0));
+        if (_balance1() > reserve1) pay(token1, address(this), governance, _balance1().sub(reserve1));
+
          // Do zero-burns to poke the Uniswap pools so earned fees are updated
         pool.burn(tickLower, tickUpper, 0);
         
@@ -389,10 +406,12 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
                 type(uint128).max,
                 type(uint128).max
             );
-
+        
         // Calculate protocol's fees
         uint256 earnedProtocolFees0 = collect0.mul(protocolFee).unsafeDiv(GLOBAL_DIVISIONER);
         uint256 earnedProtocolFees1 = collect1.mul(protocolFee).unsafeDiv(GLOBAL_DIVISIONER);
+        reserve0 = reserve0.add(collect0).sub(earnedProtocolFees0);
+        reserve1 = reserve1.add(collect1).sub(earnedProtocolFees1);
         protocolFees0 = protocolFees0.add(earnedProtocolFees0);
         protocolFees1 = protocolFees1.add(earnedProtocolFees1);
         totalFees0 = totalFees0.add(collect0);
@@ -401,13 +420,8 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     }
 
     function _compoundFees() internal returns (uint256 amount0, uint256 amount1){
-        uint256 balance0 = _balance0();
-        uint256 balance1 = _balance1();
-
-        emit Snapshot(balance0, balance1);
-
         //Get Liquidity for Optimizer's balances
-        uint128 liquidity = pool.liquidityForAmounts(balance0, balance1, tickLower, tickUpper);
+        uint128 liquidity = pool.liquidityForAmounts(reserve0, reserve1, tickLower, tickUpper);
         
         // Add liquidity to the pool
         if (liquidity > 0)
@@ -418,6 +432,9 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
                 tickUpper,
                 liquidity,
                 abi.encode(MintCallbackData({payer: address(this)})));
+
+            reserve0 = reserve0.sub(amount0);
+            reserve1 = reserve1.sub(amount0);
             emit CompoundFees(amount0, amount1);
         }
     }
