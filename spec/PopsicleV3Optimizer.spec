@@ -345,6 +345,30 @@ filtered { f -> excludeCallback(f) && f.selector != collectProtocolFees(uint256,
     assert (pool.balance0() - pool.owed0() == 0 && pool.balance1() - pool.owed1() == 0 ) <=> totalSupply() == 0;
 }
 
+rule withdraw_amount(address to){
+    env e;
+    require (to!=governance() && to != pool && to != currentContract);
+    require e.msg.sender != pool && e.msg.sender != currentContract && e.msg.sender != governance();
+
+    require token0.balanceOf(currentContract) == 0 &&
+            token1.balanceOf(currentContract) == 0;
+    requireInvariant pool_balance_vs_owed();
+    requireInvariant zero_totalSupply_zero_owed();
+
+    uint256 shares;
+    uint256 amount0;
+    uint256 amount1;
+
+    uint256 totalsupply = totalSupply();
+    uint256 pool_balance0 = pool.balance0();
+
+            amount0,amount1 =  withdraw(e,shares, to);
+    
+    uint256 amount0_calc = pool_balance0 * shares / totalsupply;
+    require amount0_calc >= 1;
+    
+    assert  amount0 <= amount0_calc;
+}
 // after calling rebalance, token0.balanceOf(this)==0 and token1.balanceOf(this)==0
 /* rule zeroBalancesAfterRebalance(){
     env e;
