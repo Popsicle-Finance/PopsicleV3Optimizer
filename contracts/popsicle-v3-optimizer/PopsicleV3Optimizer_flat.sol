@@ -2291,7 +2291,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
             abi.encode(MintCallbackData({payer: msg.sender})));
         
         require(amount0 > 0 && amount1 > 0, "ANV");
-        shares = totalSupply() == 0 ? liquidity*MULTIPLIER : FullMath.mulDiv(liquidity, totalSupply(), liquidityLast*MULTIPLIER);
+        shares = totalSupply() == 0 ? liquidity*MULTIPLIER : FullMath.mulDiv(liquidity, totalSupply(), liquidityLast);
 
         _mint(to, shares);
         require(IOptimizerStrategy(strategy).maxTotalSupply() >= totalSupply(), "MTS");
