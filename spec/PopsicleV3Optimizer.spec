@@ -1,5 +1,15 @@
-
-
+/*
+* Scope of the project
+- Verification of the main contract: PopsicleV3Optimizer.sol
+* Out of the scope 
+- All optimization calculations
+- Interaction with UniswapV3 pool
+* UniswapV3pool simplified
+- A simplified version of UniswapV3pool was developed specifically for this project
+- SymbolicUniswapV3Pool.sol:
+- functions mint(),collect(),burn(),swap(),observe(),tickSpacing(),slot0(),positions()
+- Assumed : liquidity == balanced0 - owed0
+*/ 
 using DummyERC20A as token0
 using DummyERC20B as token1
 using SymbolicUniswapV3Pool as pool
@@ -19,7 +29,7 @@ methods {
 	getSqrtRatioAtTick(int24 tick) => NONDET
 	getTickAtSqrtRatio(uint160 sqrtPriceX96) => NONDET
     sqrt(uint256 x) => approximateSqrt(x)
-	mulDiv(uint256 a, uint256 b, uint256 denominator) => NONDET
+	// mulDiv(uint256 a, uint256 b, uint256 denominator) => NONDET
 	mulDivRoundingUp(uint256 a, uint256 b, uint256 denominator) => NONDET
 	
     
@@ -104,27 +114,42 @@ ghost approximateSqrt(uint256) returns uint256;
                             //token1.balanceOf(currentContract) == protocolFees1()
     filtered { f -> f.selector != uniswapV3MintCallback(uint256,uint256,bytes).selector && f.selector != uniswapV3SwapCallback(int256,int256,bytes).selector }
         {
+    preserved{
+            require governance() != currentContract;
+            require governance() != pool;
+        }
     preserved withdraw(uint256 amount,address to) with (env e){
-             require to != governance() && to != currentContract && to != pool;
-             require e.msg.sender != currentContract && e.msg.sender != pool && e.msg.sender != governance();
-             requireInvariant empty_pool_state();
-             requireInvariant balance_contract_GE_protocolFees();
-             requireInvariant zero_pool_balance_zero_owed();
+            require to != governance() && to != currentContract && to != pool;
+            require e.msg.sender != currentContract && e.msg.sender != pool && e.msg.sender != governance();
+            requireInvariant empty_pool_state();
+            requireInvariant balance_contract_GE_protocolFees();
+            requireInvariant pool_balance_vs_owed();
+            requireInvariant liquidity_GE_poolBalance0();
+
          } 
     }
     
     ////////////////////////////////////////////////
     ///// invariant balance_contract_GE_protocolFees()
     ////  verifies that balance of the conttract is greater than protocol fees
-    ////  collectProtocolFees() - it breakes the rule
+    ////  uniswapV3SwapCallback() - meaningles outside of the swap context
     ////  uniswapV3MintCallback() - meaningles outside of the mint context
     invariant balance_contract_GE_protocolFees()
     token0.balanceOf(currentContract) >= protocolFees0()
     filtered { f -> f.selector != uniswapV3MintCallback(uint256,uint256,bytes).selector && f.selector != uniswapV3SwapCallback(int256,int256,bytes).selector }
     {
+    preserved{
+        require governance() != currentContract;
+        require governance() != pool;
+        }
+    preserved withdraw(uint256 amount,address to) with (env e){
+        requireInvariant total_vs_protocol_Fees();
+        require to != governance() && to != currentContract && to != pool;
+        require e.msg.sender != currentContract && e.msg.sender != pool && e.msg.sender != governance();
+         } 
     preserved deposit(uint256 amount0Desired,uint256 amount1Desired, address to) with (env e){
-         require to != governance() && to != currentContract && to != pool;
-         require e.msg.sender != currentContract && e.msg.sender != pool && e.msg.sender != governance();
+        require to != governance() && to != currentContract && to != pool;
+        require e.msg.sender != currentContract && e.msg.sender != pool && e.msg.sender != governance();
         }
     } 
 
@@ -138,9 +163,12 @@ ghost approximateSqrt(uint256) returns uint256;
     filtered { f -> excludeCallback(f) && f.selector != collectProtocolFees(uint256,uint256).selector }
     {
     preserved {
-             requireInvariant zero_totalSupply_zero_owed();
+            require governance() != currentContract;
+            require governance() != pool;
+            requireInvariant zero_totalSupply_zero_owed();
          }   
     preserved withdraw(uint256 amount,address to) with (env e){
+             requireInvariant liquidity_GE_poolBalance0();
              require to != governance() && to != currentContract && to != pool;
              require e.msg.sender != currentContract && e.msg.sender != pool && e.msg.sender != governance();
          } 
@@ -155,19 +183,24 @@ ghost approximateSqrt(uint256) returns uint256;
     invariant empty_pool_state_reverse()
     pool.liquidity() == 0 <=> (pool.balance0() - pool.owed0() == 0 && pool.balance1() - pool.owed1() == 0)
     filtered { f -> excludeCallback(f) && f.selector != collectProtocolFees(uint256,uint256).selector }
-    {
+    {            
+    preserved{
+            require governance() != currentContract;
+            require governance() != pool;
+        }
     preserved withdraw(uint256 amount,address to) with (env e){
-             requireInvariant empty_pool_state();
-             requireInvariant zero_totalSupply_zero_owed();
-             requireInvariant zero_pool_balance_zero_owed();
-             requireInvariant pool_balance_vs_owed();
-             requireInvariant total_vs_protocol_Fees();
-             require to != currentContract && to != pool && to != governance() ;
-             require e.msg.sender != currentContract && e.msg.sender != pool && e.msg.sender != governance();
+            requireInvariant empty_pool_state();
+            requireInvariant zero_totalSupply_zero_owed();
+            requireInvariant pool_balance_vs_owed();
+            requireInvariant total_vs_protocol_Fees();
+            requireInvariant liquidity_GE_poolBalance0();
+
+            require to != currentContract && to != pool && to != governance() ;
+            require e.msg.sender != currentContract && e.msg.sender != pool && e.msg.sender != governance();
          } 
     preserved deposit(uint256 amount0Desired,uint256 amount1Desired, address to) with (env e){
-             require to != governance() && to != currentContract && to != pool;
-             require e.msg.sender != currentContract && e.msg.sender != pool && e.msg.sender != governance();
+            require to != currentContract && to != pool && to != governance();
+            require e.msg.sender != currentContract && e.msg.sender != pool && e.msg.sender != governance();
          } 
     }
     ////////////////////////////////////////////////
@@ -210,6 +243,24 @@ ghost approximateSqrt(uint256) returns uint256;
          } 
     }
 
+    ////////////////////////////////////////////////
+    ///// invariant liquidity_GE_poolBalance0()
+    ////  verifies that pool liquidity == pool balance - pool owed
+    ////  collectProtocolFees() - breaks the rule
+    ////  uniswapV3MintCallback() - meaningless outside of the mint context
+    invariant liquidity_GE_poolBalance0()
+    pool.liquidity() == pool.balance0() - pool.owed0()
+    filtered { f -> excludeCallback(f) && f.selector != collectProtocolFees(uint256,uint256).selector }
+    {
+    preserved{
+            require governance() != currentContract;
+            require governance() != pool;
+        }
+    preserved withdraw(uint256 amount,address to) with (env e){
+            require to != currentContract && to != pool && to != governance();
+            require e.msg.sender != currentContract && e.msg.sender != pool && e.msg.sender != governance();
+         } 
+    }
 
     definition excludeCallback(method f) returns bool = f.selector != uniswapV3MintCallback(uint256,uint256,bytes).selector && f.selector != uniswapV3SwapCallback(int256,int256,bytes).selector;
 
@@ -225,6 +276,11 @@ rule zeroCharacteristicOfWithdraw(uint256 shares, address to){
     env e;
     uint256 amount0;
     uint256 amount1;
+
+    require governance() != currentContract;
+    require governance() != pool;
+    require to != currentContract && to != pool && to != governance();
+    require e.msg.sender != currentContract && e.msg.sender != pool && e.msg.sender != governance();
 
     amount0,amount1 =  withdraw(e,shares, to);
 
@@ -244,7 +300,9 @@ env e;
     uint256 amount0Y;
     uint256 amount1Y;
 
-    require to != governance() && to != currentContract && to != pool;
+    require governance() != currentContract;
+    require governance() != pool;
+    require to != currentContract && to != pool && to != governance();
     require e.msg.sender != currentContract && e.msg.sender != pool && e.msg.sender != governance();
 
     require sharesX > sharesY;// + 100000000000;
@@ -265,7 +323,10 @@ rule totalSupply_vs_positionAmounts(method f){
 
    uint256 totalSupplyBefore = totalSupply();
    uint256 posLiquidityBefore = position_Liquidity();
-   
+
+    require governance() != currentContract;
+    require governance() != pool;
+
    require lastCompoundLiquidity(e) == 0;
 
    calldataarg args;
@@ -319,8 +380,12 @@ rule protocolFees_state(env e, method f, uint256 shares, address to)
 rule empty_pool_zero_totalSupply(method f, address to)
 filtered { f -> excludeCallback(f) && f.selector != collectProtocolFees(uint256,uint256).selector}{
     env e;
+
+    require governance() != currentContract;
+    require governance() != pool;
     require (pool.balance0() - pool.owed0() == 0 && pool.balance1() - pool.owed1() == 0 ) <=> totalSupply() == 0;
     require (to!=governance() && to != pool && to != currentContract);
+    
     requireInvariant pool_balance_vs_owed();
 
     calldataarg args;
@@ -347,6 +412,9 @@ filtered { f -> excludeCallback(f) && f.selector != collectProtocolFees(uint256,
 
 rule withdraw_amount(address to){
     env e;
+
+    require governance() != currentContract;
+    require governance() != pool;
     require (to!=governance() && to != pool && to != currentContract);
     require e.msg.sender != pool && e.msg.sender != currentContract && e.msg.sender != governance();
 
@@ -354,6 +422,9 @@ rule withdraw_amount(address to){
             token1.balanceOf(currentContract) == 0;
     requireInvariant pool_balance_vs_owed();
     requireInvariant zero_totalSupply_zero_owed();
+    requireInvariant liquidity_GE_poolBalance0();
+    requireInvariant empty_pool_state();
+    requireInvariant balance_contract_GE_protocolFees();
 
     uint256 shares;
     uint256 amount0;
@@ -361,12 +432,14 @@ rule withdraw_amount(address to){
 
     uint256 totalsupply = totalSupply();
     uint256 pool_balance0 = pool.balance0();
+    uint256 pool_owed0 = pool.owed0();
 
             amount0,amount1 =  withdraw(e,shares, to);
     
-    uint256 amount0_calc = pool_balance0 * shares / totalsupply;
+    // uint256 amount0_calc = (pool_balance0 - pool_owed0) * shares / totalsupply;
+    mathint amount0_calc = pool_balance0 * shares / totalsupply;
     require amount0_calc >= 1;
-    
+
     assert  amount0 <= amount0_calc;
 }
 // after calling rebalance, token0.balanceOf(this)==0 and token1.balanceOf(this)==0
