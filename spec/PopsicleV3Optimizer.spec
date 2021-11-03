@@ -47,16 +47,6 @@ methods {
 	tickRangeMultiplier() => NONDET
 	priceImpactPercentage() => NONDET
 
-	// ERC20
- // transfer(address, uint256) => DISPATCHER(true) 
-   // transferFrom(address, address, uint256) => DISPATCHER(true) 
-   // totalSupply() => DISPATCHER(true)
-   // balanceOf(address) returns (uint256) => DISPATCHER(true)
-
-    // WETH
-    // withdraw(uint256, address) returns (uint256,uint256) envfree
-    // collectProtocolFees(uint256,uint256) envfree
-
     balanceOf(address) returns(uint256) envfree
     totalSupply() returns(uint256) envfree
 
@@ -64,7 +54,6 @@ methods {
     position_Liquidity() returns(uint128) envfree
     protocol_Liquidity() returns(uint128) envfree
     governance() returns(address) envfree
-    // acceptGovernance() envfree
     protocolFees0() returns (uint256) envfree
     protocolFees1() returns (uint256) envfree
     totalFees0() returns (uint256) envfree
@@ -94,19 +83,14 @@ methods {
 }
 
 ghost approximateSqrt(uint256) returns uint256;
-/* {
-  axiom forall uint256 x.
-	(x == 0 => approximateSqrt(x) ==0) &&
-	( x > 0 => approximateSqrt(x) == x/4 +1 );
-}*/
 
 ////////////////////////////////////////////
-/////////       Ivariants
+/////////       Invariants
 /////////////////////////////////////////////
 
     ////////////////////////////////////////////////
     ///// invariant balance_vs_protocol_Liquidity()
-    ////  verifies that 
+    ////  verifies that if total supply is zero than all the assets of the system is the owned to governance 
     ////  uniswapV3SwapCallback() - meaningless outside of the swap context
     ////  uniswapV3MintCallback() - meaningless outside of the mint context
     invariant balance_vs_protocol_Liquidity()
@@ -305,7 +289,7 @@ env e;
     require to != currentContract && to != pool && to != governance();
     require e.msg.sender != currentContract && e.msg.sender != pool && e.msg.sender != governance();
 
-    require sharesX > sharesY;// + 100000000000;
+    require sharesX > sharesY;
     storage init = lastStorage;
     
     amount0X,amount1X =  withdraw(e,sharesX, to);
