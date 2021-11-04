@@ -2196,7 +2196,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     address public constant weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     // @inheritdoc IPopsicleV3Optimizer
     int24 public immutable override tickSpacing;
-    uint256 constant MULTIPLIER = 1e6;
+    uint24 constant MULTIPLIER = 1e6;
     uint24 constant GLOBAL_DIVISIONER = 1e6; // for basis point (0.0001%)
     //The protocol's fee in hundredths of a bip, i.e. 1e-6
     uint24 constant protocolFee = 2 * 1e5; //20%
