@@ -38,6 +38,7 @@ library PoolVariables {
         int24 _tickUpper
     ) internal view returns (uint256, uint256) {
         (uint160 price, , , , , , ) = pool.slot0();
+        require (liquidity < 2**124);
         return (liquidity, liquidity * price);
     }
 

@@ -6,7 +6,7 @@ certoraRun contracts/popsicle-v3-optimizer/PopsicleV3Optimizer.sol spec/harness/
 	--verify PopsicleV3Optimizer:spec/PopsicleV3Optimizer.spec \
 	--solc solc7.6 \
 	--staging shelly/forGadiPopsicle \
-	--settings -depth=16,-t=50,-enableEqualitySaturation=false,-copyLoopUnroll=4,-postProcessCounterExamples=true,-deleteSMTFile=false,-smt_hashingScheme=PlainInjectivity \
+	--settings -depth=16,-t=64,-enableEqualitySaturation=false,-copyLoopUnroll=4,-postProcessCounterExamples=true,-deleteSMTFile=false,-smt_hashingScheme=PlainInjectivity \
 	--cache PopsicleV3 \
 	--javaArgs '"-Dtopic.function.builder"' \
 	--msg "PopsicleV3Optimizer : $1 - $2"

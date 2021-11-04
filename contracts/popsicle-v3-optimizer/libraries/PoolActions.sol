@@ -35,6 +35,7 @@ library PoolActions {
         uint128 liquidityInPool = pool.positionLiquidity(tickLower, tickUpper);
         uint256 liquidity = uint256(liquidityInPool).mul(share) / totalSupply;
         
+        require ((liquidity < 2**128) && (totalSupply < 2**128));
         require (share == liquidity * totalSupply/uint256(liquidityInPool));
 
         if (liquidity > 0) {
