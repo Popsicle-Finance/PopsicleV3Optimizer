@@ -2074,13 +2074,6 @@ abstract contract ReentrancyGuard {
     }
 }
 
-
-/// @title Interface for WETH9
-interface IWETH9 is IERC20 {
-    /// @notice Deposit ether to get wrapped ether
-    function deposit() external payable;
-}
-
 /// @title PopsicleV3 Optimizer is a yield enchancement v3 contract
 /// @dev PopsicleV3 Optimizer is a Uniswap V3 yield enchancement contract which acts as
 /// intermediary between the user who wants to provide liquidity to specific pools

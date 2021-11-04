@@ -3,7 +3,6 @@
 pragma solidity 0.7.6;
 pragma abicoder v2;
 
-import "./interfaces/external/IWETH9.sol";
 import "./utils/ReentrancyGuard.sol";
 import './libraries/TransferHelper.sol';
 import "./libraries/SqrtPriceMath.sol";
