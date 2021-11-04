@@ -2074,13 +2074,6 @@ abstract contract ReentrancyGuard {
     }
 }
 
-
-/// @title Interface for WETH9
-interface IWETH9 is IERC20 {
-    /// @notice Deposit ether to get wrapped ether
-    function deposit() external payable;
-}
-
 /// @title PopsicleV3 Optimizer is a yield enchancement v3 contract
 /// @dev PopsicleV3 Optimizer is a Uniswap V3 yield enchancement contract which acts as
 /// intermediary between the user who wants to provide liquidity to specific pools
@@ -2192,10 +2185,9 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     address public immutable override token0;
     /// @inheritdoc IPopsicleV3Optimizer
     address public immutable override token1;
-    // WETH address
-    address public constant weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     // @inheritdoc IPopsicleV3Optimizer
     int24 public immutable override tickSpacing;
+    uint24 constant MULTIPLIER = 1e6;
     uint24 constant GLOBAL_DIVISIONER = 1e6; // for basis point (0.0001%)
     //The protocol's fee in hundredths of a bip, i.e. 1e-6
     uint24 constant protocolFee = 2 * 1e5; //20%
@@ -2277,10 +2269,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
     {
         _earnFees();
         _compoundFees(); // prevent user drains others
-        
-        (uint256 usersAmount0, uint256 usersAmount1) = pool.usersAmounts(tickLower, tickUpper);
-        usersAmount0 = usersAmount0.add(_balance0().unsafeDiv(2)); // prevent draining
-        usersAmount1 = usersAmount1.add(_balance1().unsafeDiv(2));
+        uint128 liquidityLast = pool.positionLiquidity(tickLower, tickUpper);
         
         // compute the liquidity amount
         uint128 liquidity = pool.liquidityForAmounts(amount0Desired, amount1Desired, tickLower, tickUpper);
@@ -2293,16 +2282,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
             abi.encode(MintCallbackData({payer: msg.sender})));
         
         require(amount0 > 0 && amount1 > 0, "ANV");
-        uint256 shares0 = 
-            totalSupply() == 0 
-            ? liquidity
-            : FullMath.mulDiv(amount0, totalSupply(), usersAmount0);
-        
-        uint256 shares1 = 
-            totalSupply() == 0 
-            ? liquidity
-            : FullMath.mulDiv(amount1, totalSupply(), usersAmount1);
-        shares =  shares0 < shares1 ? shares0 : shares1;
+        shares = totalSupply() == 0 ? liquidity*MULTIPLIER : FullMath.mulDiv(liquidity, totalSupply(), liquidityLast);
 
         _mint(to, shares);
         require(IOptimizerStrategy(strategy).maxTotalSupply() >= totalSupply(), "MTS");
@@ -2330,10 +2310,7 @@ contract PopsicleV3Optimizer is ERC20Permit, ReentrancyGuard, IPopsicleV3Optimiz
         _compoundFees();
         (amount0, amount1) = pool.burnLiquidityShare(tickLower, tickUpper, totalSupply(), shares,  to);
         require(amount0 > 0 || amount1 > 0, "EA");
-        uint256 imbalancedAmount0 = FullMath.mulDiv(_balance0(), shares, totalSupply());
-        uint256 imbalancedAmount1 = FullMath.mulDiv(_balance1(), shares, totalSupply());
-        if (imbalancedAmount0 > 0) pay(token0, address(this), to, imbalancedAmount0);
-        if (imbalancedAmount1 > 0) pay(token1, address(this), to, imbalancedAmount1);
+
         // Burn shares
         _burn(msg.sender, shares);
 
